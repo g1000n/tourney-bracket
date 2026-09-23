@@ -1,0 +1,12 @@
+.main { max-width: 1080px; margin: 0 auto; padding: var(--space-4); }
+.titleRow { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-4); }
+.pill, .pillComplete { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--color-line); }
+.pillComplete { border-color: var(--color-accent); color: var(--color-accent); }
+.roundsRow { display: flex; gap: var(--space-4); overflow-x: auto; }
+.roundCol { min-width: 200px; }
+.roundTitle { font-family: var(--font-heading); color: var(--color-primary); border-bottom: 1px solid var(--color-line); padding-bottom: 4px; margin-bottom: var(--space-2); }
+.matchCard { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 3px; padding: 10px; margin-bottom: var(--space-2); font-size: 14px; }
+.matchCard.clickable { cursor: pointer; }
+.matchCard.clickable:hover { border-color: var(--color-primary); }
+.winner { font-weight: 600; color: var(--color-accent-on-tint); }
+@media (max-width: 720px) { .roundsRow { flex-direction: column; } }

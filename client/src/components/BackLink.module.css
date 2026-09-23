@@ -1,0 +1,11 @@
+/* client/src/components/BackLink.module.css */
+.backLink {
+  display: inline-block;
+  color: var(--color-text-soft);
+  text-decoration: none;
+  font-size: 14px;
+  margin: var(--space-2) var(--space-4) 0;
+}
+.backLink:hover {
+  color: var(--color-primary);
+}
