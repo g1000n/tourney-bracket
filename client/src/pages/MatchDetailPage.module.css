@@ -1,0 +1,6 @@
+.main { max-width: 480px; margin: 0 auto; padding: var(--space-4); }
+.matchup { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin: var(--space-4) 0; }
+.side { text-align: center; }
+.side input { width: 70px; text-align: center; font-size: 20px; padding: 8px; border: 1px solid var(--color-line); border-radius: 3px; }
+.error { color: var(--color-accent-on-tint); text-align: center; }
+.saveBtn { width: 100%; padding: 10px; background: var(--color-primary); color: white; border: none; border-radius: 3px; cursor: pointer; }

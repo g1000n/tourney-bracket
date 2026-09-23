@@ -1,0 +1,9 @@
+.footer {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--color-line);
+  color: var(--color-text-soft);
+  font-size: 13px;
+  text-align: center;
+}
