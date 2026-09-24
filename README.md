@@ -53,8 +53,10 @@ docs/            Planning documents
 ```
 
 ## 6. Screenshots
-![alt text](image.png)
-![alt text](image-1.png)
+
+![Tournaments Dashboard](screenshots/image1.png)
+
+![Tournament Bracket](screenshots/image2.png)
 
 ## 7. Known issues and next steps
 
