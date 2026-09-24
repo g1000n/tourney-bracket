@@ -1,0 +1,7 @@
+.main { max-width: 1080px; margin: 0 auto; padding: var(--space-4); }
+.columns { display: flex; gap: var(--space-4); }
+.columns > div { flex: 1; }
+.row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-line); font-size: 14px; }
+.history { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 3px; padding: 8px; margin: 4px 0 12px; }
+.historyRow { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-soft); padding: 4px 0; }
+@media (max-width: 720px) { .columns { flex-direction: column; } }
