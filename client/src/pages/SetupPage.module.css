@@ -1,7 +1,104 @@
-.main { max-width: 1080px; margin: 0 auto; padding: var(--space-4); }
-.columns { display: flex; gap: var(--space-4); }
-.columns > div { flex: 1; }
-.row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-line); font-size: 14px; }
-.history { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 3px; padding: 8px; margin: 4px 0 12px; }
-.historyRow { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-soft); padding: 4px 0; }
-@media (max-width: 720px) { .columns { flex-direction: column; } }
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.playerRow {
+  display: grid;
+  grid-template-columns: 1fr 100px auto;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.playerRow input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.playerRow button {
+  width: 40px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+.playerRow button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.field > button {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.field > button:hover {
+  border-color: var(--color-primary);
+}
+
+.error {
+  color: var(--color-accent-on-tint);
+  margin-bottom: var(--space-2);
+}
+
+.generateBtn {
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.generateBtn:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 720px) {
+  .main {
+    padding: var(--space-3);
+  }
+
+  .playerRow {
+    grid-template-columns: 1fr 80px auto;
+  }
+}
