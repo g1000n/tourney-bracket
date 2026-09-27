@@ -1,27 +1,267 @@
 -- Sample data for development.
 --
--- This starts with TRUNCATE. That is correct on your laptop and catastrophic
+-- This starts with TRUNCATE. That is correct on your laptop and dangerous
 -- against the database your live demo depends on. Check which DATABASE_URL is
 -- loaded before you run it.
 
-TRUNCATE TABLE sightings RESTART IDENTITY CASCADE;
+TRUNCATE TABLE
+  matches,
+  tournament_players,
+  players,
+  tournaments,
+  admins
+RESTART IDENTITY CASCADE;
 
-INSERT INTO sightings (place, description, spookiness, reported_at) VALUES
-  ('Library, third floor',
-   'Chairs rearranged overnight, every time. The night guard says he locks the room himself.',
-   3, now() - interval '12 days'),
-  ('Old gym',
-   'Lights flicker in a fixed pattern after 9pm, always three short and one long.',
-   4, now() - interval '10 days'),
-  ('Parking basement',
-   'Footsteps with no one there. Reported separately by three different people in one week, which is what makes this one hard to dismiss. Two of them were alone at the time and did not know about the others. This row is deliberately long, because a seed of four words hides every text-wrapping bug you have.',
-   5, now() - interval '8 days'),
-  ('Canteen',
-   'A cold spot near the back door, every morning before seven.',
-   1, now() - interval '7 days'),
-  ('AB Building stairwell',
-   '',
-   2, now() - interval '5 days'),
-  ('Chapel garden',
-   'Someone humming. Stops the moment you turn around.',
-   3, now() - interval '2 days');
+-- Two tournaments are included so the public page can show an active
+-- tournament while the Stats page can also use completed tournament data.
+
+INSERT INTO tournaments (id, game, round_name, status, created_at) VALUES
+  ('11111111-1111-1111-1111-111111111111',
+   'Valorant',
+   'Friday Night',
+   'in_progress',
+   now() - interval '1 day'),
+
+  ('22222222-2222-2222-2222-222222222222',
+   'Tekken 8',
+   'Weekend Tournament',
+   'complete',
+   now() - interval '7 days');
+
+-- Players are shared between tournaments where needed so the Stats page can
+-- count a player's results across more than one tournament.
+
+INSERT INTO players (id, name) VALUES
+  ('10000000-0000-0000-0000-000000000001', 'Alex'),
+  ('10000000-0000-0000-0000-000000000002', 'Blake'),
+  ('10000000-0000-0000-0000-000000000003', 'Casey'),
+  ('10000000-0000-0000-0000-000000000004', 'Drew'),
+  ('10000000-0000-0000-0000-000000000005', 'Evan'),
+  ('10000000-0000-0000-0000-000000000006', 'Jordan'),
+  ('10000000-0000-0000-0000-000000000007', 'Kai'),
+  ('10000000-0000-0000-0000-000000000008', 'Mason');
+
+-- Rank belongs to the player's entry in a tournament, not to the player
+-- itself, because the same player can have a different seed in another run.
+
+INSERT INTO tournament_players (tournament_id, player_id, rank) VALUES
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000001', 1),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000002', 2),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000003', 3),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000004', 4),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000005', 5),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000006', 6),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000007', 7),
+  ('11111111-1111-1111-1111-111111111111', '10000000-0000-0000-0000-000000000008', 8),
+
+  ('22222222-2222-2222-2222-222222222222', '10000000-0000-0000-0000-000000000001', 1),
+  ('22222222-2222-2222-2222-222222222222', '10000000-0000-0000-0000-000000000002', 2),
+  ('22222222-2222-2222-2222-222222222222', '10000000-0000-0000-0000-000000000003', 3),
+  ('22222222-2222-2222-2222-222222222222', '10000000-0000-0000-0000-000000000004', 4);
+
+-- Insert later-round matches first because earlier matches point to the
+-- match a winner advances into.
+
+INSERT INTO matches (
+  id,
+  tournament_id,
+  round_number,
+  round_label,
+  team_a_id,
+  team_b_id,
+  score_a,
+  score_b,
+  winner_id,
+  next_match_id,
+  next_slot,
+  is_bye
+) VALUES
+  (
+    '30000000-0000-0000-0000-000000000007',
+    '11111111-1111-1111-1111-111111111111',
+    2,
+    'Final',
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    FALSE
+  ),
+  (
+    '30000000-0000-0000-0000-000000000005',
+    '11111111-1111-1111-1111-111111111111',
+    1,
+    'Semifinals',
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    13,
+    8,
+    '10000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000007',
+    'A',
+    FALSE
+  ),
+  (
+    '30000000-0000-0000-0000-000000000006',
+    '11111111-1111-1111-1111-111111111111',
+    1,
+    'Semifinals',
+    '10000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000004',
+    NULL,
+    NULL,
+    NULL,
+    '30000000-0000-0000-0000-000000000007',
+    'B',
+    FALSE
+  );
+
+-- Round 1 for the active tournament.
+
+INSERT INTO matches (
+  id,
+  tournament_id,
+  round_number,
+  round_label,
+  team_a_id,
+  team_b_id,
+  score_a,
+  score_b,
+  winner_id,
+  next_match_id,
+  next_slot,
+  is_bye
+) VALUES
+  (
+    '30000000-0000-0000-0000-000000000001',
+    '11111111-1111-1111-1111-111111111111',
+    0,
+    'Quarterfinals',
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    13,
+    7,
+    '10000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000005',
+    'A',
+    FALSE
+  ),
+  (
+    '30000000-0000-0000-0000-000000000002',
+    '11111111-1111-1111-1111-111111111111',
+    0,
+    'Quarterfinals',
+    '10000000-0000-0000-0000-000000000004',
+    '10000000-0000-0000-0000-000000000005',
+    9,
+    13,
+    '10000000-0000-0000-0000-000000000005',
+    '30000000-0000-0000-0000-000000000005',
+    'B',
+    FALSE
+  ),
+  (
+    '30000000-0000-0000-0000-000000000003',
+    '11111111-1111-1111-1111-111111111111',
+    0,
+    'Quarterfinals',
+    '10000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000006',
+    13,
+    11,
+    '10000000-0000-0000-0000-000000000003',
+    '30000000-0000-0000-0000-000000000006',
+    'A',
+    FALSE
+  ),
+  (
+    '30000000-0000-0000-0000-000000000004',
+    '11111111-1111-1111-1111-111111111111',
+    0,
+    'Quarterfinals',
+    '10000000-0000-0000-0000-000000000007',
+    '10000000-0000-0000-0000-000000000008',
+    6,
+    13,
+    '10000000-0000-0000-0000-000000000008',
+    '30000000-0000-0000-0000-000000000006',
+    'B',
+    FALSE
+  );
+
+-- The completed tournament has a full four-player bracket.
+
+INSERT INTO matches (
+  id,
+  tournament_id,
+  round_number,
+  round_label,
+  team_a_id,
+  team_b_id,
+  score_a,
+  score_b,
+  winner_id,
+  next_match_id,
+  next_slot,
+  is_bye
+) VALUES
+  (
+    '40000000-0000-0000-0000-000000000003',
+    '22222222-2222-2222-2222-222222222222',
+    1,
+    'Final',
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003',
+    3,
+    2,
+    '10000000-0000-0000-0000-000000000001',
+    NULL,
+    NULL,
+    FALSE
+  );
+
+INSERT INTO matches (
+  id,
+  tournament_id,
+  round_number,
+  round_label,
+  team_a_id,
+  team_b_id,
+  score_a,
+  score_b,
+  winner_id,
+  next_match_id,
+  next_slot,
+  is_bye
+) VALUES
+  (
+    '40000000-0000-0000-0000-000000000001',
+    '22222222-2222-2222-2222-222222222222',
+    0,
+    'Semifinals',
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000004',
+    3,
+    1,
+    '10000000-0000-0000-0000-000000000001',
+    '40000000-0000-0000-0000-000000000003',
+    'A',
+    FALSE
+  ),
+  (
+    '40000000-0000-0000-0000-000000000002',
+    '22222222-2222-2222-2222-222222222222',
+    0,
+    'Semifinals',
+    '10000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003',
+    1,
+    3,
+    '10000000-0000-0000-0000-000000000003',
+    '40000000-0000-0000-0000-000000000003',
+    'B',
+    FALSE
+  );
