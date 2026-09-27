@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import BackLink from "../components/BackLink";
@@ -11,15 +11,30 @@ export default function SetupPage() {
   const { createTournament } = useTournaments();
   const [game, setGame] = useState("");
   const [roundName, setRoundName] = useState("");
-  const [players, setPlayers] = useState([{ name: "", rank: "" }, { name: "", rank: "" }]);
+  const [players, setPlayers] = useState([
+    { name: "", rank: "" },
+    { name: "", rank: "" },
+  ]);
   const [error, setError] = useState("");
 
-  function updatePlayer(index, field, value) {
-    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
+  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+
+  if (!isAdmin) {
+    return <Navigate to="/admin/login" replace />;
   }
+
+  function updatePlayer(index, field, value) {
+    setPlayers((prev) =>
+      prev.map((p, i) =>
+        i === index ? { ...p, [field]: value } : p
+      )
+    );
+  }
+
   function addPlayer() {
     setPlayers((prev) => [...prev, { name: "", rank: "" }]);
   }
+
   function removePlayer(index) {
     setPlayers((prev) => prev.filter((_, i) => i !== index));
   }
@@ -29,15 +44,25 @@ export default function SetupPage() {
       setError("Enter a game before generating.");
       return;
     }
+
     const validPlayers = players
       .filter((p) => p.name.trim())
-      .map((p) => ({ name: p.name.trim(), rank: p.rank ? parseInt(p.rank, 10) : null }));
+      .map((p) => ({
+        name: p.name.trim(),
+        rank: p.rank ? parseInt(p.rank, 10) : null,
+      }));
 
     if (validPlayers.length < 2) {
       setError("Add at least 2 players before generating.");
       return;
     }
-    const id = createTournament({ game: game.trim(), roundName: roundName.trim(), players: validPlayers });
+
+    const id = createTournament({
+      game: game.trim(),
+      roundName: roundName.trim(),
+      players: validPlayers,
+    });
+
     navigate(`/tournament/${id}`);
   }
 
@@ -47,31 +72,67 @@ export default function SetupPage() {
       <main className={styles.main}>
         <BackLink />
         <h1>New tournament</h1>
-
         <div className={styles.field}>
           <label>Game</label>
-          <input value={game} onChange={(e) => setGame(e.target.value)} placeholder="e.g. Valorant" />
+          <input
+            value={game}
+            onChange={(e) => setGame(e.target.value)}
+            placeholder="e.g. Valorant"
+          />
         </div>
 
         <div className={styles.field}>
           <label>Round name (optional)</label>
-          <input value={roundName} onChange={(e) => setRoundName(e.target.value)} placeholder="Friday night" />
+          <input
+            value={roundName}
+            onChange={(e) => setRoundName(e.target.value)}
+            placeholder="Friday night"
+          />
         </div>
 
         <div className={styles.field}>
           <label>Players</label>
+
           {players.map((p, i) => (
             <div key={i} className={styles.playerRow}>
-              <input placeholder="Player name" value={p.name} onChange={(e) => updatePlayer(i, "name", e.target.value)} />
-              <input placeholder="Rank" type="number" value={p.rank} onChange={(e) => updatePlayer(i, "rank", e.target.value)} />
-              <button type="button" onClick={() => removePlayer(i)}>×</button>
+              <input
+                placeholder="Player name"
+                value={p.name}
+                onChange={(e) =>
+                  updatePlayer(i, "name", e.target.value)
+                }
+              />
+
+              <input
+                placeholder="Rank"
+                type="number"
+                value={p.rank}
+                onChange={(e) =>
+                  updatePlayer(i, "rank", e.target.value)
+                }
+              />
+              <button
+                type="button"
+                onClick={() => removePlayer(i)}
+              >
+                ×
+              </button>
             </div>
           ))}
-          <button type="button" onClick={addPlayer}>Add player</button>
+
+          <button type="button" onClick={addPlayer}>
+            Add player
+          </button>
         </div>
 
         {error && <p className={styles.error}>{error}</p>}
-        <button className={styles.generateBtn} onClick={handleGenerate}>Generate bracket</button>
+
+        <button
+          className={styles.generateBtn}
+          onClick={handleGenerate}
+        >
+          Generate bracket
+        </button>
       </main>
       <Footer />
     </>
