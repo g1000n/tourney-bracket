@@ -12,8 +12,9 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError("");
 
-// temporary admin login
+    // temporary admin login
     if (username === "admin" && password === "123") {
+      sessionStorage.setItem("isAdmin", "true");
       navigate("/");
       return;
     }

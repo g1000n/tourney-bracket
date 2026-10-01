@@ -3,15 +3,18 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import TournamentCard from "../components/TournamentCard";
 import { useTournaments } from "../context/TournamentsContext";
+import { FORMATS } from "../lib/bracket";
 import styles from "./TournamentsPage.module.css";
 
 export default function TournamentsPage() {
   const navigate = useNavigate();
-  const { tournaments } = useTournaments();
+  const { tournaments, deleteTournament } = useTournaments();
   const isAdmin = sessionStorage.getItem("isAdmin") === "true";
 
-  const activeTournaments = tournaments.filter(
-    (tournament) => tournament.status !== "complete"
+  // Completed tournaments stay listed (marked complete), after the
+  // in-progress ones.
+  const sortedTournaments = [...tournaments].sort(
+    (a, b) => (a.status === "complete") - (b.status === "complete")
   );
 
   return (
@@ -44,18 +47,28 @@ export default function TournamentsPage() {
         </div>
 
         <div className={styles.grid}>
-          {activeTournaments.length === 0 ? (
-            <p>No active tournaments right now.</p>
+          {sortedTournaments.length === 0 ? (
+            <p>No tournaments yet.</p>
           ) : (
-            activeTournaments.map((tournament) => (
+            sortedTournaments.map((tournament) => (
               <TournamentCard
                 key={tournament.id}
                 name={tournament.name}
                 date={tournament.date}
                 status={tournament.status}
+                format={FORMATS[tournament.format]?.label}
                 teamCount={tournament.teams.length}
                 onClick={() =>
                   navigate(`/tournament/${tournament.id}`)
+                }
+                onDelete={
+                  isAdmin
+                    ? () => {
+                        if (window.confirm(`Delete "${tournament.name}" and all its results? This can't be undone.`)) {
+                          deleteTournament(tournament.id);
+                        }
+                      }
+                    : undefined
                 }
               />
             ))

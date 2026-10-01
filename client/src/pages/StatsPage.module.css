@@ -1,7 +1,57 @@
 .main { max-width: 1080px; margin: 0 auto; padding: var(--space-4); }
-.columns { display: flex; gap: var(--space-4); }
-.columns > div { flex: 1; }
-.row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-line); font-size: 14px; }
+.titleRow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+.search { width: 320px; max-width: 100%; padding: 9px 12px; border: 1px solid var(--color-line); border-radius: 3px; background: var(--color-surface); font-size: 14px; }
+
+.columns { display: flex; gap: var(--space-4); align-items: flex-start; }
+.gamesCol { flex: 2; min-width: 0; }
+.playersCol { flex: 1; min-width: 0; }
+.muted { font-size: 13px; color: var(--color-text-soft); margin: 0; }
+.chevron { width: 14px; flex-shrink: 0; color: var(--color-text-soft); }
+
+/* Games */
+.game { background: var(--color-surface); border: 1px solid var(--color-line); border-left: 4px solid var(--color-primary); border-radius: 3px; margin-bottom: var(--space-1); }
+.gameHeader { display: flex; align-items: baseline; gap: var(--space-1); width: 100%; padding: 12px var(--space-2); border: none; background: none; text-align: left; border-radius: 0; }
+.gameName { font-family: var(--font-heading); font-size: 18px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gameBody { padding: 0 var(--space-2) var(--space-2); }
+.gameBody h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-soft); margin: var(--space-2) 0 var(--space-1); }
+
+/* Tournaments inside a game */
+.tournamentList { list-style: none; margin: 0; padding: 0; }
+.tournamentItem { border-bottom: 1px solid var(--color-line); }
+.expander { display: flex; align-items: baseline; gap: var(--space-1); width: 100%; padding: 8px 0; border: none; background: none; text-align: left; border-radius: 0; font-size: 14px; }
+.expanderMain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.expanderTitle { font-weight: 600; overflow-wrap: anywhere; }
+.expanderMeta { font-size: 12px; color: var(--color-text-soft); }
+.expanderSide { font-size: 13px; color: var(--color-text-soft); text-align: right; }
+.nested { padding: 0 0 var(--space-2) 22px; }
+.openLink { display: inline-block; margin-top: var(--space-1); font-size: 13px; color: var(--color-primary); }
+
+/* Tables */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--color-surface); border: 1px solid var(--color-line); }
+.table th, .table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--color-line); }
+.table th { font-size: 12px; color: var(--color-text-soft); font-weight: 600; }
+.table th:nth-child(n + 3), .table td:nth-child(n + 3) { text-align: right; }
+
+/* Players (overall) */
+.playerList { list-style: none; margin: 0; padding: 0; }
+.row { display: flex; justify-content: space-between; gap: var(--space-1); width: 100%; padding: 8px 0; border: none; border-bottom: 1px solid var(--color-line); border-radius: 0; background: none; font-size: 14px; text-align: left; }
+.row:hover { color: var(--color-primary); }
+.position { display: inline-block; min-width: 24px; color: var(--color-text-soft); font-variant-numeric: tabular-nums; }
 .history { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 3px; padding: 8px; margin: 4px 0 12px; }
-.historyRow { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-soft); padding: 4px 0; }
-@media (max-width: 720px) { .columns { flex-direction: column; } }
+.historySummary { font-size: 13px; margin: 0 0 6px; }
+.historyRow { display: flex; justify-content: space-between; gap: var(--space-1); font-size: 13px; color: var(--color-text-soft); padding: 4px 0; }
+.historyRow a { color: var(--color-primary); }
+.adminRow { display: flex; gap: var(--space-1); margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--color-line); }
+.adminRow input { flex: 1; min-width: 0; padding: 4px 8px; border: 1px solid var(--color-line); border-radius: 3px; }
+.adminRow button { padding: 4px 10px; font-size: 13px; }
+.dangerBtn { border-color: var(--color-accent); color: var(--color-accent); }
+.dangerBtn:hover { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+.error { font-size: 12px; color: var(--color-accent-on-tint); margin: 6px 0 0; }
+
+@media (max-width: 720px) {
+  .main { padding: var(--space-3) var(--space-2); }
+  .columns { flex-direction: column; align-items: stretch; }
+  .search { width: 100%; }
+  .table th, .table td { padding: 6px 4px; }
+  .nested { padding-left: 0; }
+}

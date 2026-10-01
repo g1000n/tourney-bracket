@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   game       VARCHAR(100) NOT NULL,
   round_name VARCHAR(100),
   status     VARCHAR(20) NOT NULL DEFAULT 'in_progress',
+  format     VARCHAR(30) NOT NULL DEFAULT 'single_elimination',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -33,7 +34,8 @@ CREATE TABLE IF NOT EXISTS players (
 CREATE TABLE IF NOT EXISTS tournament_players (
   tournament_id UUID NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
   player_id     UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  rank          INTEGER,
+  rank          INTEGER CHECK (rank IS NULL OR rank > 0),
+  seed          INTEGER CHECK (seed IS NULL OR seed > 0),
   PRIMARY KEY (tournament_id, player_id)
 );
 
@@ -51,7 +53,13 @@ CREATE TABLE IF NOT EXISTS matches (
   winner_id     UUID REFERENCES players(id),
   next_match_id UUID REFERENCES matches(id),
   next_slot     VARCHAR(1),
-  is_bye        BOOLEAN NOT NULL DEFAULT FALSE
+  is_bye        BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Added for the three formats; see migrations/001_tournament_formats.sql.
+  loser_next_match_id UUID REFERENCES matches(id),
+  loser_next_slot     VARCHAR(1),
+  is_third_place      BOOLEAN NOT NULL DEFAULT FALSE,
+  bracket_side        VARCHAR(20),
+  best_of             INTEGER CHECK (best_of IS NULL OR best_of > 0)
 );
 
 -- These are used when looking up all matches or players for a tournament.
