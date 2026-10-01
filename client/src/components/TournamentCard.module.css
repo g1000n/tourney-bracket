@@ -1,3 +1,22 @@
+.wrap {
+  position: relative;
+  display: flex;
+}
+.wrap > .card {
+  flex: 1;
+}
+.deleteBtn {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  padding: 2px 8px;
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+.deleteBtn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
@@ -15,6 +34,7 @@
   font-family: var(--font-heading);
   font-size: 18px;
   margin: 0 0 4px;
+  padding-right: 56px;
 }
 .date {
   color: var(--color-text-soft);

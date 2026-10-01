@@ -1,17 +1,33 @@
-import { pool } from './db/pool.js'
+// The data-access layer, the same shape as the course template.
+// Every query is parameterised: values go in the array, never into the string.
 
-export async function getAllTournaments() {
-  // TODO: query the tournaments table
+export async function getAll(pool) {
+  const result = await pool.query(`
+    SELECT * FROM tournaments
+    ORDER BY created_at DESC`)
+  return result.rows
 }
 
-export async function getTournamentById(id) {
-  // TODO: query one tournament by id
+export async function getById(pool,id) {
+  const result = await pool.query(`
+    SELECT * FROM tournaments
+    WHERE id = $1`, [id])
+  return result.rows[0] ?? null
 }
 
-export async function createTournament(tournament) {
-  // TODO: insert a tournament
+export async function create(pool,tournament) {
+  const result = await pool.query(`
+    INSERT INTO tournaments (id, game, round_name, status)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *`,
+    [tournament.id, tournament.game, tournament.round_name, tournament.status])
+  return result.rows[0]
 }
 
-export async function deleteTournament(id) {
-  // TODO: delete a tournament
+export async function remove(pool,id) {
+  const result = await pool.query(`
+    DELETE FROM tournaments
+    WHERE id = $1
+    RETURNING id`, [id])
+  return result.rowCount > 0
 }

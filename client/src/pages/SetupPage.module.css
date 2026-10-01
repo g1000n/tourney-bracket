@@ -102,3 +102,138 @@
     grid-template-columns: 1fr 80px auto;
   }
 }
+.formatField {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-3);
+}
+
+.formatField legend {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: var(--space-1);
+  padding: 0;
+}
+
+.formatOptions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+}
+
+.formatOption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.formatOption input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.formatOption:hover {
+  border-color: var(--color-primary);
+}
+
+.formatOption:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.formatSelected {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.formatName {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.formatDesc {
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin: 0 0 var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .formatOptions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.warning {
+  font-size: 13px;
+  color: var(--color-accent-on-tint);
+  margin: 4px 0 0;
+}
+
+.fieldLabel {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.playerHead {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  margin-bottom: 0;
+}
+
+.playerRow input:disabled {
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+  cursor: not-allowed;
+}
+
+.lengthRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.selectField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.selectField select {
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .lengthRow {
+    grid-template-columns: 1fr;
+  }
+}

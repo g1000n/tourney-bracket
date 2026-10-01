@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import { pool } from './db/pool.js'
-import * as sightings from './sightingsRepo.js'
+import * as tournaments from './tournamentsRepo.js'
 
 const app = express()
 
@@ -55,15 +55,15 @@ function validate(body) {
   return { errors, value: { place, description, spookiness } }
 }
 
-app.get('/api/sightings', async (request, response, next) => {
+app.get('/api/tournaments', async (request, response, next) => {
   try {
-    response.json(await sightings.getAll(pool))
+    response.json(await tournaments.getAllTournaments())
   } catch (error) {
     next(error)
   }
 })
 
-app.get('/api/sightings/:id', async (request, response, next) => {
+app.get('/api/tournaments/:id', async (request, response, next) => {
   try {
     const row = await sightings.getById(pool, request.params.id)
     if (!row) return response.status(404).json({ error: 'Not found' })
@@ -73,7 +73,7 @@ app.get('/api/sightings/:id', async (request, response, next) => {
   }
 })
 
-app.post('/api/sightings', async (request, response, next) => {
+app.post('/api/tournaments', async (request, response, next) => {
   const { errors, value } = validate(request.body ?? {})
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
 
@@ -84,7 +84,7 @@ app.post('/api/sightings', async (request, response, next) => {
   }
 })
 
-app.put('/api/sightings/:id', async (request, response, next) => {
+app.put('/api/tournaments/:id', async (request, response, next) => {
   const { errors, value } = validate(request.body ?? {})
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
 
@@ -97,7 +97,7 @@ app.put('/api/sightings/:id', async (request, response, next) => {
   }
 })
 
-app.delete('/api/sightings/:id', async (request, response, next) => {
+app.delete('/api/tournaments/:id', async (request, response, next) => {
   try {
     const removed = await sightings.remove(pool, request.params.id)
     if (!removed) return response.status(404).json({ error: 'Not found' })
