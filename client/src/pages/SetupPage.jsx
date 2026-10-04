@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import BackLink from "../components/BackLink";
+import Combobox from "../components/Combobox";
 import { useTournaments } from "../context/TournamentsContext";
 import { FORMATS, MATCH_LENGTHS } from "../lib/bracket";
 import styles from "./SetupPage.module.css";
@@ -13,16 +14,23 @@ const fromValue = (value) => (value === "free" ? null : Number(value));
 
 export default function SetupPage() {
   const navigate = useNavigate();
-  const { createTournament } = useTournaments();
+  const { createTournament, games, players: knownPlayers, savedSeeds } = useTournaments();
   const [game, setGame] = useState("");
   const [roundName, setRoundName] = useState("");
+  // seedTouched: the admin typed this seed, so don't overwrite it with a
+  // saved one.
   const [players, setPlayers] = useState([
-    { name: "", seed: "" },
-    { name: "", seed: "" },
+    { name: "", seed: "", seedTouched: false },
+    { name: "", seed: "", seedTouched: false },
   ]);
   const [format, setFormat] = useState("single_elimination");
   const [thirdPlace, setThirdPlace] = useState(true);
   const [randomSeeding, setRandomSeeding] = useState(true);
+  // Once the admin ticks/unticks random seeding themselves, leave it alone.
+  const [randomTouched, setRandomTouched] = useState(false);
+  // How many seeds were filled in from earlier tournaments of this game.
+  const [autoFilled, setAutoFilled] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [bestOf, setBestOf] = useState(null);
   // undefined = same as the other rounds
   const [lateBestOf, setLateBestOf] = useState(undefined);
@@ -45,20 +53,48 @@ export default function SetupPage() {
     };
   }
 
-  function updatePlayer(index, field, value) {
+  // Seeds are saved per game: a player keeps the seed they were last given
+  // in this game. This fills every seed the admin hasn't typed themselves,
+  // and turns random seeding off when saved seeds exist (unless the admin
+  // has already chosen).
+  function applySavedSeeds(rows, gameName) {
+    const seeds = savedSeeds(gameName);
+    let filled = 0;
+    const next = rows.map((row) => {
+      if (row.seedTouched) return row;
+      const seed = seeds.get(row.name.trim().toLowerCase());
+      if (seed != null) filled++;
+      return { ...row, seed: seed != null ? String(seed) : "" };
+    });
+    setPlayers(next);
+    setAutoFilled(filled);
+    if (!randomTouched) setRandomSeeding(filled === 0);
+  }
+
+  function changeGame(value) {
     setError("");
-    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
+    setGame(value);
+    applySavedSeeds(players, value);
+  }
+
+  function changeName(index, value) {
+    setError("");
+    applySavedSeeds(
+      players.map((p, i) => (i === index ? { ...p, name: value } : p)),
+      game
+    );
   }
 
   // Seeds are whole numbers from 1 up. Blank means N/A (no seed).
   function updateSeed(index, raw) {
     const digits = raw.replace(/\D/g, "").replace(/^0+/, "");
-    updatePlayer(index, "seed", digits);
+    setError("");
+    setPlayers((prev) => prev.map((p, i) => (i === index ? { ...p, seed: digits, seedTouched: true } : p)));
   }
 
   function addPlayer() {
     setError("");
-    setPlayers((prev) => [...prev, { name: "", seed: "" }]);
+    setPlayers((prev) => [...prev, { name: "", seed: "", seedTouched: false }]);
   }
 
   function removePlayer(index) {
@@ -66,16 +102,20 @@ export default function SetupPage() {
     setPlayers((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     if (!game.trim()) {
       setError("Enter a game before generating.");
       return;
     }
 
+    // Use the spelling already on record for known games and players, so
+    // "tekken 8" joins "Tekken 8" instead of becoming a new game.
+    const knownGame = games.find((g) => g.name.toLowerCase() === game.trim().toLowerCase());
+    const knownName = (name) => knownPlayers.find((k) => k.name.toLowerCase() === name.toLowerCase())?.name ?? name;
     const validPlayers = players
       .filter((p) => p.name.trim())
       .map((p) => ({
-        name: p.name.trim(),
+        name: knownName(p.name.trim()),
         rank: usesSeeds && p.seed ? parseInt(p.seed, 10) : null,
       }));
 
@@ -105,9 +145,10 @@ export default function SetupPage() {
       return;
     }
 
+    setSaving(true);
     try {
-      const id = createTournament({
-        game: game.trim(),
+      const id = await createTournament({
+        game: knownGame ? knownGame.name : game.trim(),
         roundName: roundName.trim(),
         players: validPlayers,
         format,
@@ -119,8 +160,26 @@ export default function SetupPage() {
       navigate(`/tournament/${id}`);
     } catch (e) {
       setError(e.message);
+      setSaving(false);
     }
   }
+
+  const seedsForGame = savedSeeds(game);
+  const gameOptions = games.map((g) => ({
+    value: g.name,
+    meta: `${g.count} tournament${g.count === 1 ? "" : "s"}`,
+  }));
+  // Known players not already in another row, with their saved seed in
+  // this game (if any).
+  const playerOptions = (index) => {
+    const taken = new Set(players.filter((_, i) => i !== index).map((p) => p.name.trim().toLowerCase()));
+    return knownPlayers
+      .filter((k) => !taken.has(k.name.toLowerCase()))
+      .map((k) => {
+        const seed = seedsForGame.get(k.name.toLowerCase());
+        return { value: k.name, meta: seed != null ? `seed ${seed}` : "" };
+      });
+  };
 
   return (
     <>
@@ -130,7 +189,14 @@ export default function SetupPage() {
         <h1>New tournament</h1>
         <div className={styles.field}>
           <label htmlFor="game">Game</label>
-          <input id="game" value={game} onChange={(e) => edited(setGame)(e.target.value)} placeholder="e.g. Valorant" />
+          <Combobox
+            id="game"
+            value={game}
+            onChange={changeGame}
+            options={gameOptions}
+            placeholder={games.length ? "Pick a game or type a new one" : "e.g. Valorant"}
+            newLabel={(text) => `Add new game "${text}"`}
+          />
         </div>
 
         <div className={styles.field}>
@@ -149,7 +215,7 @@ export default function SetupPage() {
             {Object.entries(FORMATS).map(([key, f]) => (
               <label
                 key={key}
-                className={`${styles.formatOption} ${format === key ? styles.formatSelected : ""}`}
+                className={`${styles.formatOption} ${styles[key] || ""} ${format === key ? styles.formatSelected : ""}`}
               >
                 <input
                   type="radio"
@@ -226,10 +292,19 @@ export default function SetupPage() {
               <input
                 type="checkbox"
                 checked={randomSeeding}
-                onChange={(e) => edited(setRandomSeeding)(e.target.checked)}
+                onChange={(e) => {
+                  setRandomTouched(true);
+                  edited(setRandomSeeding)(e.target.checked);
+                }}
               />
               Random seeding — shuffle everyone, ignore seeds
             </label>
+            {autoFilled > 0 && (
+              <p className={styles.notice}>
+                Seeds for {autoFilled} player{autoFilled === 1 ? "" : "s"} filled in from earlier {game.trim()}{" "}
+                tournaments. You can change them.
+              </p>
+            )}
             {!randomSeeding && (
               <p className={styles.hint}>
                 Seed 1 is the top seed and meets the lowest seed first. Players left at N/A are shuffled in after
@@ -249,11 +324,13 @@ export default function SetupPage() {
 
           {players.map((p, i) => (
             <div key={i} className={styles.playerRow}>
-              <input
-                aria-label={`Player ${i + 1} name`}
+              <Combobox
+                ariaLabel={`Player ${i + 1} name`}
                 placeholder="Player name"
                 value={p.name}
-                onChange={(e) => updatePlayer(i, "name", e.target.value)}
+                onChange={(value) => changeName(i, value)}
+                options={playerOptions(i)}
+                newLabel={(text) => `New player "${text}"`}
               />
               <input
                 aria-label={`Player ${i + 1} seed`}
@@ -261,7 +338,7 @@ export default function SetupPage() {
                 inputMode="numeric"
                 disabled={!usesSeeds}
                 title={usesSeeds ? "Seed (1 = top seed)" : "Turn off random seeding to set seeds"}
-                value={usesSeeds ? p.seed : ""}
+                value={p.seed}
                 onChange={(e) => updateSeed(i, e.target.value)}
               />
               <button type="button" aria-label={`Remove player ${i + 1}`} onClick={() => removePlayer(i)}>
@@ -288,8 +365,8 @@ export default function SetupPage() {
 
         {error && <p className={styles.error}>{error}</p>}
 
-        <button className={styles.generateBtn} onClick={handleGenerate}>
-          {format === "round_robin" ? "Generate schedule" : "Generate bracket"}
+        <button className={styles.generateBtn} onClick={handleGenerate} disabled={saving}>
+          {saving ? "Saving…" : format === "round_robin" ? "Generate schedule" : "Generate bracket"}
         </button>
       </main>
       <Footer />

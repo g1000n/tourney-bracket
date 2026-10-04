@@ -4,11 +4,12 @@ import Footer from "../components/Footer";
 import TournamentCard from "../components/TournamentCard";
 import { useTournaments } from "../context/TournamentsContext";
 import { FORMATS } from "../lib/bracket";
+import wordmark from "../assets/logo-wordmark.svg";
 import styles from "./TournamentsPage.module.css";
 
 export default function TournamentsPage() {
   const navigate = useNavigate();
-  const { tournaments, deleteTournament } = useTournaments();
+  const { tournaments, deleteTournament, loading } = useTournaments();
   const isAdmin = sessionStorage.getItem("isAdmin") === "true";
 
   // Completed tournaments stay listed (marked complete), after the
@@ -21,59 +22,61 @@ export default function TournamentsPage() {
     <>
       <Header />
       <main className={styles.main}>
-        <div className={styles.actionsRow}>
-          <h1>Tournaments</h1>
+        {/* The home page is an old family computer: the wordmark and the
+            tournaments sit on its green screen. */}
+        <section className={styles.monitor} aria-labelledby="home-title">
+          <div className={styles.screen}>
+            <h1 id="home-title" className={styles.title}>
+              <img src={wordmark} alt="TourneyBracket" className={styles.wordmark} />
+            </h1>
+            <svg className={styles.swoosh} viewBox="0 0 600 40" aria-hidden="true" preserveAspectRatio="none">
+              <path d="M10 30 C 160 2, 420 2, 590 22" />
+            </svg>
+            <p className={styles.prompt}>
+              {loading
+                ? "Loading tournaments…"
+                : sortedTournaments.length === 0
+                  ? isAdmin
+                    ? "No tournaments yet. Start one with New tournament."
+                    : "No tournaments yet. Check back soon."
+                  : "Pick a tournament to begin."}
+            </p>
 
-          <div className={styles.buttons}>
-            <button onClick={() => navigate("/stats")}>Stats</button>
-
-            {isAdmin && (
-              <button onClick={() => navigate("/setup")}>
-                New tournament
-              </button>
-            )}
-
-            {isAdmin && (
-              <button
-                onClick={() => {
-                  sessionStorage.removeItem("isAdmin");
-                  navigate("/");
-                }}
-              >
-                Log out
-              </button>
+            {!loading && sortedTournaments.length > 0 && (
+              <div className={styles.grid}>
+                {sortedTournaments.map((tournament) => (
+                  <TournamentCard
+                    key={tournament.id}
+                    name={tournament.name}
+                    date={tournament.date}
+                    status={tournament.status}
+                    format={FORMATS[tournament.format]?.label}
+                    formatKey={tournament.format}
+                    teamCount={tournament.teams.length}
+                    onClick={() => navigate(`/tournament/${tournament.id}`)}
+                    onDelete={
+                      isAdmin
+                        ? async () => {
+                            if (window.confirm(`Delete "${tournament.name}" and all its results? This can't be undone.`)) {
+                              const problem = await deleteTournament(tournament.id);
+                              if (problem) window.alert(problem);
+                            }
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
             )}
           </div>
-        </div>
-
-        <div className={styles.grid}>
-          {sortedTournaments.length === 0 ? (
-            <p>No tournaments yet.</p>
-          ) : (
-            sortedTournaments.map((tournament) => (
-              <TournamentCard
-                key={tournament.id}
-                name={tournament.name}
-                date={tournament.date}
-                status={tournament.status}
-                format={FORMATS[tournament.format]?.label}
-                teamCount={tournament.teams.length}
-                onClick={() =>
-                  navigate(`/tournament/${tournament.id}`)
-                }
-                onDelete={
-                  isAdmin
-                    ? () => {
-                        if (window.confirm(`Delete "${tournament.name}" and all its results? This can't be undone.`)) {
-                          deleteTournament(tournament.id);
-                        }
-                      }
-                    : undefined
-                }
-              />
-            ))
-          )}
-        </div>
+          <div className={styles.bezel} aria-hidden="true">
+            <span className={styles.knob} />
+            <span className={styles.knob} />
+            <span className={styles.knob} />
+            <span className={styles.knob} />
+            <span className={styles.power} />
+          </div>
+        </section>
       </main>
       <Footer />
     </>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -47,8 +47,8 @@ function MatchCard({ tournament, match, isAdmin }) {
   const withScore = (slot, value) => (slot === "A" ? [value, b] : [a, value]);
   const allowed = (slot, value) => validateLiveScore(...withScore(slot, value), bestOf) === null;
 
-  function change(slot, value) {
-    setError(setLiveScore(tournament.id, match.id, ...withScore(slot, value)) || "");
+  async function change(slot, value) {
+    setError((await setLiveScore(tournament.id, match.id, ...withScore(slot, value))) || "");
   }
 
   const finishProblem = validateScore(a, b, bestOf);
@@ -110,7 +110,7 @@ function MatchCard({ tournament, match, isAdmin }) {
             className={styles.finishBtn}
             disabled={Boolean(finishProblem)}
             title={finishProblem || "Lock in this result"}
-            onClick={() => setError(finishMatch(tournament.id, match.id) || "")}
+            onClick={async () => setError((await finishMatch(tournament.id, match.id)) || "")}
           >
             Finish
           </button>
@@ -129,7 +129,7 @@ function MatchCard({ tournament, match, isAdmin }) {
                 ? "Reopen this match to change the score"
                 : "A later match that depends on this result has already started"
             }
-            onClick={() => setError(reopenMatch(tournament.id, match.id) || "")}
+            onClick={async () => setError((await reopenMatch(tournament.id, match.id)) || "")}
           >
             Edit result
           </button>
@@ -143,6 +143,7 @@ function MatchCard({ tournament, match, isAdmin }) {
 
 function RoundHeader({ tournament, round, isAdmin }) {
   const { setRoundBestOf } = useTournaments();
+  const [error, setError] = useState("");
   const index = tournament.rounds.indexOf(round);
   const matches = roundMatches(tournament, round);
   const started = matches.some((m) => hasStarted(m) || (m.winnerId && !m.isBye));
@@ -156,7 +157,7 @@ function RoundHeader({ tournament, round, isAdmin }) {
           className={styles.roundLength}
           aria-label={`${round.label} match length`}
           value={toValue(bestOf)}
-          onChange={(e) => setRoundBestOf(tournament.id, index, fromValue(e.target.value))}
+          onChange={async (e) => setError((await setRoundBestOf(tournament.id, index, fromValue(e.target.value))) || "")}
         >
           {MATCH_LENGTHS.map((l) => (
             <option key={l.label} value={toValue(l.value)}>
@@ -167,29 +168,122 @@ function RoundHeader({ tournament, round, isAdmin }) {
       ) : (
         <span className={styles.roundLengthText}>{matchLengthLabel(bestOf)}</span>
       )}
+      {error && <p className={styles.cardError}>{error}</p>}
     </div>
   );
 }
 
 // `wrap` lays rounds out as a wrapping grid instead of one long row that
 // scrolls sideways. Used for round robin, where rounds aren't a bracket.
-function RoundColumns({ tournament, rounds, isAdmin, wrap = false }) {
+// The bracket's connectors, drawn like the curly braces in the logo: each
+// pair of matches is joined by a "}" whose point leads to the match their
+// winners play next. A match with only one feeder in this section (a
+// losers-bracket round where the other player drops in from the winners
+// bracket) gets a plain elbow line. Positions are measured from the cards
+// themselves, so the lines follow the layout at any size.
+function braceToPath(feeders, target) {
+  const x1 = Math.max(...feeders.map((f) => f.right));
+  const gap = target.left - x1;
+  if (gap < 16) return null;
+  const xs = x1 + Math.min(18, gap / 3); // the brace's spine
+  const ys = feeders.map((f) => f.mid).sort((a, b) => a - b);
+  const yT = target.mid;
+
+  if (ys.length === 1) {
+    return `M${x1} ${ys[0]} H${xs} V${yT} H${target.left}`;
+  }
+
+  const yTop = ys[0];
+  const yBot = ys[ys.length - 1];
+  const r = Math.max(2, Math.min(14, (yBot - yTop) / 4));
+  // The brace's point sits between the two feeders; if the next match is
+  // higher or lower than that, a short elbow carries the line to it.
+  const yTip = Math.min(Math.max(yT, yTop + 2 * r), yBot - 2 * r);
+  const xTip = xs + r;
+  const toTarget =
+    yTip === yT
+      ? `M${xTip} ${yTip} H${target.left}`
+      : `M${xTip} ${yTip} H${xTip + (target.left - xTip) / 2} V${yT} H${target.left}`;
+  return [
+    `M${x1} ${yTop} C${xs} ${yTop} ${xs} ${yTop} ${xs} ${yTop + r}`,
+    `V${yTip - r} C${xs} ${yTip} ${xs} ${yTip} ${xTip} ${yTip}`,
+    `C${xs} ${yTip} ${xs} ${yTip} ${xs} ${yTip + r}`,
+    `V${yBot - r} C${xs} ${yBot} ${xs} ${yBot} ${x1} ${yBot}`,
+    toTarget,
+  ].join(" ");
+}
+
+function Connectors({ canvasRef, tournament }) {
+  const [paths, setPaths] = useState([]);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    function measure() {
+      const box = canvas.getBoundingClientRect();
+      const pos = new Map();
+      canvas.querySelectorAll("[data-match-id]").forEach((el) => {
+        const r = el.getBoundingClientRect();
+        pos.set(el.dataset.matchId, {
+          left: r.left - box.left,
+          right: r.right - box.left,
+          mid: r.top - box.top + r.height / 2,
+        });
+      });
+      const feedersOf = new Map();
+      for (const m of tournament.allMatches) {
+        if (!m.nextMatchId || !pos.has(m.id) || !pos.has(m.nextMatchId)) continue;
+        if (!feedersOf.has(m.nextMatchId)) feedersOf.set(m.nextMatchId, []);
+        feedersOf.get(m.nextMatchId).push(pos.get(m.id));
+      }
+      const next = [...feedersOf].map(([id, feeders]) => braceToPath(feeders, pos.get(id))).filter(Boolean);
+      setPaths((prev) => (prev.join("|") === next.join("|") ? prev : next));
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  });
+
   return (
-    <div className={wrap ? styles.roundsGrid : styles.roundsRow}>
-      {rounds.map((round) => {
-        // Matches voided by byes on both sides never happen; hide them.
-        // The grand final reset stays visible so "Not needed" is explicit.
-        const matches = roundMatches(tournament, round).filter((m) => !m.isVoid || m.isReset);
-        if (matches.length === 0) return null;
-        return (
-          <div key={round.label} className={styles.roundCol}>
-            <RoundHeader tournament={tournament} round={round} isAdmin={isAdmin} />
-            {matches.map((match) => (
-              <MatchCard key={match.id} tournament={tournament} match={match} isAdmin={isAdmin} />
-            ))}
-          </div>
-        );
-      })}
+    <svg className={styles.connectors} aria-hidden="true">
+      {paths.map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
+}
+
+// `wrap` lays rounds out as a wrapping grid (round robin, where rounds
+// aren't a bracket); otherwise rounds are bracket columns joined by braces.
+function RoundColumns({ tournament, rounds, isAdmin, wrap = false }) {
+  const canvasRef = useRef(null);
+  const columns = rounds.map((round) => {
+    // Matches voided by byes on both sides never happen; hide them.
+    // The grand final reset stays visible so "Not needed" is explicit.
+    const matches = roundMatches(tournament, round).filter((m) => !m.isVoid || m.isReset);
+    if (matches.length === 0) return null;
+    return (
+      <div key={round.label} className={styles.roundCol}>
+        <RoundHeader tournament={tournament} round={round} isAdmin={isAdmin} />
+        <div className={styles.roundMatches}>
+          {matches.map((match) => (
+            <div key={match.id} data-match-id={match.id}>
+              <MatchCard tournament={tournament} match={match} isAdmin={isAdmin} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  });
+
+  if (wrap) return <div className={styles.roundsGrid}>{columns}</div>;
+  return (
+    <div className={styles.roundsRow}>
+      <div className={styles.bracketCanvas} ref={canvasRef}>
+        {columns}
+        <Connectors canvasRef={canvasRef} tournament={tournament} />
+      </div>
     </div>
   );
 }
@@ -236,21 +330,24 @@ function AdminPanel({ tournament }) {
   const [message, setMessage] = useState("");
   const locked = hasResults(tournament);
 
-  function saveName(teamId) {
-    const problem = renamePlayer(tournament.id, teamId, draft);
+  // Renames the player everywhere: a player is one record across every
+  // tournament and game.
+  async function saveName(team) {
+    const problem = await renamePlayer(team.name, draft);
     setMessage(problem || "");
     if (!problem) setEditing(null);
   }
 
-  function remove(team) {
+  async function remove(team) {
     if (!window.confirm(`Remove ${team.name}? The bracket will be rebuilt without them.`)) return;
-    setMessage(removePlayer(tournament.id, team.id) || "");
+    setMessage((await removePlayer(tournament.id, team.id)) || "");
   }
 
-  function removeTournament() {
+  async function removeTournament() {
     if (!window.confirm(`Delete "${tournament.name}" and all its results? This can't be undone.`)) return;
-    deleteTournament(tournament.id);
-    navigate("/");
+    const problem = await deleteTournament(tournament.id);
+    if (problem) setMessage(problem);
+    else navigate("/");
   }
 
   const players = [...tournament.teams].sort((a, b) => (a.seed ?? 0) - (b.seed ?? 0));
@@ -262,7 +359,8 @@ function AdminPanel({ tournament }) {
         <p className={styles.adminHint}>
           {locked
             ? "Matches have started, so players can be renamed but not removed. To change a result, use Edit result on the match."
-            : "Removing a player rebuilds the bracket without them."}
+            : "Removing a player rebuilds the bracket without them."}{" "}
+          Renaming changes the player's name in every tournament.
         </p>
         <ul className={styles.playerList}>
           {players.map((team) => (
@@ -276,11 +374,11 @@ function AdminPanel({ tournament }) {
                     autoFocus
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") saveName(team.id);
+                      if (e.key === "Enter") saveName(team);
                       if (e.key === "Escape") setEditing(null);
                     }}
                   />
-                  <button type="button" onClick={() => saveName(team.id)}>
+                  <button type="button" onClick={() => saveName(team)}>
                     Save
                   </button>
                   <button type="button" onClick={() => setEditing(null)}>
@@ -324,7 +422,7 @@ function AdminPanel({ tournament }) {
 
 export default function BracketViewPage() {
   const { id } = useParams();
-  const { tournaments } = useTournaments();
+  const { tournaments, loading } = useTournaments();
   const tournament = tournaments.find((t) => t.id === id);
   const isAdmin = sessionStorage.getItem("isAdmin") === "true";
 
@@ -334,7 +432,7 @@ export default function BracketViewPage() {
         <Header />
         <main className={styles.main}>
           <BackLink />
-          <p>Tournament not found.</p>
+          <p>{loading ? "Loading…" : "Tournament not found."}</p>
         </main>
         <Footer />
       </>
@@ -354,7 +452,7 @@ export default function BracketViewPage() {
         <BackLink />
         <div className={styles.titleRow}>
           <h1>{tournament.name}</h1>
-          <span className={styles.pill}>{FORMATS[tournament.format].label}</span>
+          <span className={`${styles.pill} ${styles[tournament.format] || ""}`}>{FORMATS[tournament.format].label}</span>
           <span className={tournament.status === "complete" ? styles.pillComplete : styles.pill}>
             {tournament.status === "complete" ? "Complete" : "In progress"}
           </span>
@@ -378,24 +476,24 @@ export default function BracketViewPage() {
 
         {tournament.format === "double_elimination" && (
           <>
-            <h2 className={styles.sectionTitle}>Winners bracket</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.secWinners}`}>Winners bracket</h2>
             {columns(bySide("winners"))}
             {bySide("losers").length > 0 && (
               <>
-                <h2 className={styles.sectionTitle}>Losers bracket</h2>
+                <h2 className={`${styles.sectionTitle} ${styles.secLosers}`}>Losers bracket</h2>
                 {columns(bySide("losers"))}
               </>
             )}
-            <h2 className={styles.sectionTitle}>Finals</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.secFinals}`}>Finals</h2>
             {columns(bySide("final"))}
           </>
         )}
 
         {tournament.format === "round_robin" && (
           <>
-            <h2 className={styles.sectionTitle}>Standings</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.secPlain}`}>Standings</h2>
             <Standings tournament={tournament} />
-            <h2 className={styles.sectionTitle}>Schedule</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.secPlain}`}>Schedule</h2>
             {columns(tournament.rounds, true)}
           </>
         )}

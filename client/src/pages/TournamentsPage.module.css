@@ -1,29 +1,124 @@
 .main {
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: var(--space-4);
 }
-.actionsRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+
+/* The monitor: a beige bezel around a green CRT screen. */
+.monitor {
+  background: var(--color-bezel);
+  border: 3px solid var(--color-edge);
+  border-radius: 22px;
+  box-shadow: var(--shadow-hard-lg);
+  padding: 22px 22px 14px;
 }
-.buttons {
-  display: flex;
-  gap: var(--space-2);
+
+.screen {
+  position: relative;
+  background-color: var(--color-screen);
+  /* Faint scanlines, like the Webby Nook screen. */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(11, 26, 18, 0.07) 0 1px,
+    transparent 1px 4px
+  );
+  border: 3px solid var(--color-edge);
+  border-radius: 14px;
+  box-shadow: inset 0 0 60px rgba(11, 26, 18, 0.28);
+  padding: var(--space-4) var(--space-4) var(--space-4);
+  text-align: center;
 }
+
+.title {
+  margin: 0;
+  line-height: 0;
+}
+
+.wordmark {
+  display: inline-block;
+  width: min(560px, 82%);
+  height: auto;
+}
+
+.swoosh {
+  display: block;
+  width: min(460px, 70%);
+  height: 26px;
+  margin: 2px auto 0;
+  overflow: visible;
+}
+
+.swoosh path {
+  fill: none;
+  stroke: var(--color-swoosh);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.prompt {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: var(--space-2) 0 var(--space-3);
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: var(--space-3);
+  text-align: left;
+}
+
+/* The row of knobs and the power light under the screen. */
+.bezel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.knob {
+  width: 22px;
+  height: 10px;
+  border: 2px solid var(--color-edge);
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+
+.power {
+  width: 12px;
+  height: 12px;
+  margin-left: var(--space-2);
+  border: 2px solid var(--color-edge);
+  border-radius: 50%;
+  background: var(--color-screen);
 }
 
 @media (max-width: 720px) {
-  .actionsRow { flex-direction: column; align-items: stretch; }
-  .buttons { width: 100%; }
-  .buttons button { flex: 1; }
-  .grid { grid-template-columns: 1fr; }
+  .main {
+    padding: var(--space-2);
+  }
+
+  .monitor {
+    border-radius: 16px;
+    padding: 12px 12px 10px;
+  }
+
+  .screen {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .wordmark {
+    width: 92%;
+  }
+
+  .prompt {
+    font-size: 18px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
 }

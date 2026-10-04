@@ -215,21 +215,21 @@ function GameSection({ group, open, onToggle, query }) {
 // Overall player list, like the original Stats design. Admins can rename
 // or delete a player from here.
 function PlayerRow({ player, isAdmin }) {
-  const { renamePlayerEverywhere, removePlayerEverywhere } = useTournaments();
+  const { renamePlayer, removePlayerEverywhere } = useTournaments();
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(player.name);
   const [message, setMessage] = useState("");
 
-  function saveName() {
-    const problem = renamePlayerEverywhere(player.name, draft);
+  async function saveName() {
+    const problem = await renamePlayer(player.name, draft);
     setMessage(problem || "");
     if (!problem) setRenaming(false);
   }
 
-  function remove() {
+  async function remove() {
     if (!window.confirm(`Delete ${player.name} from every tournament they're in?`)) return;
-    setMessage(removePlayerEverywhere(player.name) || "");
+    setMessage((await removePlayerEverywhere(player.name)) || "");
   }
 
   return (
@@ -300,7 +300,7 @@ function PlayerRow({ player, isAdmin }) {
 }
 
 export default function StatsPage() {
-  const { tournaments } = useTournaments();
+  const { tournaments, loading } = useTournaments();
   const isAdmin = sessionStorage.getItem("isAdmin") === "true";
   const [search, setSearch] = useState("");
   // Opened games when not searching; closed games while searching (search
@@ -352,7 +352,10 @@ export default function StatsPage() {
         <div className={styles.columns}>
           <div className={styles.gamesCol}>
             <h2>Games</h2>
-            {groups.length === 0 && <p className={styles.muted}>{query ? "No games match." : "No games yet."}</p>}
+            {loading && <p className={styles.muted}>Loading…</p>}
+            {!loading && groups.length === 0 && (
+              <p className={styles.muted}>{query ? "No games match." : "No games yet."}</p>
+            )}
             {groups.map((g) => (
               <GameSection key={g.key} group={g} open={isOpen(g.key)} onToggle={() => toggle(g.key)} query={query} />
             ))}

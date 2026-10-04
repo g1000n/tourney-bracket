@@ -1,21 +1,59 @@
+/*
+  TourneyBracket — "family computer, 1998".
+  A beige CRT plastic page, a green screen for the home page, and chunky
+  outlined tiles and buttons with hard shadows, in the four brand colours
+  from the logo (green, ink, blue, red) plus sun yellow.
+
+  Text contrast (WCAG): ink on screen green 4.85:1, white on green deep
+  5.4:1, white on blue 5.9:1, white on red deep 5.6:1, ink on yellow 11:1,
+  blue links 5.3:1 on paper and 4.65:1 on plastic. The bright tile red is
+  only 4.1:1 with ink, so text on red uses red deep with white instead.
+*/
 :root {
-  --color-primary: #24344A;
-  --color-primary-light: #354A64;
-  --color-accent: #A6392C;
-  --color-accent-on-tint: #8F3024;
-  --color-bg: #EFEEE8;
-  --color-surface: #FBFAF6;
-  --color-text: #17191C;
-  --color-text-soft: #5B5E63;
-  --color-line: #D6D2C6;
+  /* Brand */
+  --color-screen: #12994A;        /* screen green: the home "monitor", big areas; ink text only */
+  --color-primary: #0E7A3B;       /* green deep: primary buttons (white text) */
+  --color-primary-light: #12994A;
+  --color-text: #0B1A12;          /* ink: text, outlines, hard shadows */
+  --color-link: #2B5BD7;          /* royal blue: links, focus ring */
+  --color-blue: #2B5BD7;
+  --color-red: #E0383C;           /* tile red: decoration and large text only */
+  --color-accent: #C42E32;        /* red deep: danger buttons, error text (white on it) */
+  --color-accent-on-tint: #B8282C;
+  --color-yellow: #F5C542;        /* sun yellow: champion, highlights */
+  --color-swoosh: #6A4BC4;        /* purple: the swoosh under the wordmark only */
+
+  /* Tints */
+  --color-green-tint: #E3F3E9;
+  --color-blue-tint: #DDE6FB;
+  --color-red-tint: #FBE2E1;
+  --color-yellow-tint: #FCF0CC;
+
+  /* Neutrals: the CRT plastic */
+  --color-bg: #E9E5D8;            /* plastic: page */
+  --color-surface: #F6F3EA;       /* paper: cards, inputs */
+  --color-bezel: #F2EEE3;         /* the monitor's bezel */
+  --color-line: #CFC9B6;          /* hairline dividers inside cards */
+  --color-edge: #0B1A12;          /* outlines of cards and controls */
+  --color-text-soft: #4B5A50;
+  --color-on-color: #FFFFFF;      /* text on green deep, blue, red deep */
+  --color-bevel-dark: #A39C8C;
+  --color-bevel-light: #FFFFFF;
+
+  /* Shape */
+  --radius: 4px;
+  --radius-lg: 10px;
+  --shadow-hard-sm: 2px 2px 0 var(--color-edge);
+  --shadow-hard: 3px 3px 0 var(--color-edge);
+  --shadow-hard-lg: 5px 5px 0 var(--color-edge);
 
   --space-1: 8px;
   --space-2: 16px;
   --space-3: 24px;
   --space-4: 32px;
 
-  --font-heading: "Fraunces", "Iowan Old Style", serif;
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Gloock", Georgia, "Times New Roman", serif;
+  --font-body: "Nunito", "Trebuchet MS", system-ui, sans-serif;
 }
 
 * {
@@ -30,48 +68,82 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  font-size: 16px;
   line-height: 1.5;
   margin: 0;
   min-height: 100vh;
 }
 
-button,
-input {
+/*
+  Base controls are wrapped in :where() so they have zero specificity: any
+  class in a page's CSS module overrides them without a fight.
+*/
+:where(button, input, select, textarea) {
   font: inherit;
+  color: inherit;
 }
 
-button {
-  border: 1px solid var(--color-line);
+:where(button) {
+  font-weight: 700;
+  border: 2px solid var(--color-edge);
   background: var(--color-surface);
   color: var(--color-text);
-  border-radius: 4px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-sm);
+  padding: 6px 14px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
 }
 
-button:hover {
-  border-color: var(--color-primary);
+:where(button):where(:hover:not(:disabled)) {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
 }
 
-button:active {
-  transform: translateY(1px);
+/* Pressed: the button sinks into its shadow, like a real key. */
+:where(button):where(:active:not(:disabled)) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--color-primary);
+:where(button):where(:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+:where(input, select, textarea) {
+  background: var(--color-surface);
+  border: 2px solid var(--color-edge);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  box-shadow: inset 2px 2px 0 rgba(11, 26, 18, 0.08);
+}
+
+:where(input):where(:disabled) {
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+  cursor: not-allowed;
+}
+
+:where(input)::placeholder {
+  color: var(--color-text-soft);
+  opacity: 1;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-link);
   outline-offset: 2px;
 }
 
-input {
-  color: var(--color-text);
-  background: var(--color-surface);
+:where(a) {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-input::placeholder {
-  color: var(--color-text-soft);
-  opacity: 0.75;
+:where(a:hover) {
+  text-decoration-thickness: 2px;
 }
 
 h1,
@@ -79,40 +151,46 @@ h2,
 h3 {
   color: var(--color-text);
   font-family: var(--font-heading);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: clamp(30px, 5vw, 42px);
+  font-size: clamp(34px, 5vw, 46px);
   margin: 0 0 var(--space-2);
 }
 
 h2 {
-  font-size: 24px;
+  font-size: 26px;
   margin: 0 0 var(--space-2);
 }
 
 h3 {
-  font-size: 19px;
+  font-size: 20px;
 }
 
 p {
   margin-top: 0;
 }
 
-a {
-  color: var(--color-primary);
+/* The beveled rule from late-90s home pages. */
+hr {
+  border: 0;
+  border-top: 1px solid var(--color-bevel-dark);
+  border-bottom: 1px solid var(--color-bevel-light);
+  margin: var(--space-3) 0;
 }
 
 ::selection {
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-yellow);
+  color: var(--color-text);
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
@@ -120,18 +198,20 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-line);
-  border: 2px solid var(--color-bg);
-  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-edge);
+  border-radius: var(--radius);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-soft);
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }
 
 @media (max-width: 720px) {
   h1 {
-    font-size: 32px;
+    font-size: 34px;
   }
 
   h2 {

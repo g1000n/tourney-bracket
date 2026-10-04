@@ -1,5 +1,5 @@
 .main {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   padding: var(--space-4);
 }
@@ -11,20 +11,17 @@
   margin-bottom: var(--space-3);
 }
 
-.field label {
-  font-weight: 600;
-  font-size: 14px;
+.field label,
+.fieldLabel,
+.formatField legend {
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .field input {
   width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
 }
 
 .playerRow {
@@ -36,72 +33,60 @@
 
 .playerRow input {
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
+  width: 100%;
 }
 
+/* The × at the end of a player row. */
 .playerRow button {
-  width: 40px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
-  background: var(--color-surface);
+  width: 44px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.playerRow button:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-on-color);
+}
+
+.playerHead {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--color-text-soft);
-  cursor: pointer;
+  margin-bottom: 0;
 }
 
-.playerRow button:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
+/* Add player */
 .field > button {
   align-self: flex-start;
-  padding: 8px 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.field > button:hover {
-  border-color: var(--color-primary);
+  margin-top: 4px;
 }
 
 .error {
   color: var(--color-accent-on-tint);
+  font-weight: 700;
   margin-bottom: var(--space-2);
 }
 
+/* The main action: a wide green bar. */
 .generateBtn {
   width: 100%;
-  padding: 11px 16px;
+  padding: 14px 16px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
+  color: var(--color-on-color);
+  border-width: 3px;
+  box-shadow: var(--shadow-hard);
 }
 
-.generateBtn:hover {
-  opacity: 0.9;
+.generateBtn:disabled {
+  cursor: wait;
 }
 
-@media (max-width: 720px) {
-  .main {
-    padding: var(--space-3);
-  }
-
-  .playerRow {
-    grid-template-columns: 1fr 80px auto;
-  }
-}
 .formatField {
   border: none;
   padding: 0;
@@ -109,8 +94,6 @@
 }
 
 .formatField legend {
-  font-weight: 600;
-  font-size: 14px;
   margin-bottom: var(--space-1);
   padding: 0;
 }
@@ -118,18 +101,44 @@
 .formatOptions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
+/* Format choices are tiles with the format's colour band on top
+   (blue = single elim, red = double elim, yellow = round robin). */
 .formatOption {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
+  padding: 0 0 12px;
+  overflow: hidden;
+  border: 3px solid var(--color-edge);
+  border-radius: 6px;
   background: var(--color-surface);
+  box-shadow: var(--shadow-hard-sm);
   cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.formatOption::before {
+  content: "";
+  display: block;
+  height: 14px;
+  border-bottom: 3px solid var(--color-edge);
+  margin-bottom: 8px;
+  background: var(--color-green-tint);
+}
+
+.single_elimination::before {
+  background: var(--color-blue);
+}
+
+.double_elimination::before {
+  background: var(--color-accent);
+}
+
+.round_robin::before {
+  background: var(--color-yellow);
 }
 
 .formatOption input {
@@ -139,26 +148,39 @@
 }
 
 .formatOption:hover {
-  border-color: var(--color-primary);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
 }
 
 .formatOption:has(input:focus-visible) {
-  outline: 2px solid var(--color-primary);
+  outline: 3px solid var(--color-link);
   outline-offset: 2px;
 }
 
-.formatSelected {
-  border-color: var(--color-primary);
-  box-shadow: inset 0 0 0 1px var(--color-primary);
+/* Selected: pressed in, with a green tint. */
+.formatSelected,
+.formatSelected:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+  background: var(--color-green-tint);
 }
 
 .formatName {
-  font-weight: 600;
-  font-size: 14px;
+  padding: 0 12px;
+  font-family: var(--font-heading);
+  font-size: 19px;
+}
+
+.formatSelected .formatName::after {
+  content: " ✓";
+  font-family: var(--font-body);
+  font-weight: 800;
+  color: var(--color-primary);
 }
 
 .formatDesc {
-  font-size: 13px;
+  padding: 0 12px;
+  font-size: 14px;
   color: var(--color-text-soft);
 }
 
@@ -167,44 +189,35 @@
   align-items: center;
   gap: var(--space-1);
   margin-top: var(--space-1);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
 }
 
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
 .hint {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-soft);
   margin: 0 0 var(--space-2);
 }
 
-@media (max-width: 720px) {
-  .formatOptions {
-    grid-template-columns: 1fr;
-  }
-}
-
 .warning {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--color-accent-on-tint);
   margin: 4px 0 0;
 }
 
-.fieldLabel {
-  font-weight: 600;
+.notice {
   font-size: 14px;
-}
-
-.playerHead {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-soft);
-  margin-bottom: 0;
-}
-
-.playerRow input:disabled {
-  background: var(--color-bg);
-  color: var(--color-text-soft);
-  cursor: not-allowed;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 4px 0 0;
 }
 
 .lengthRow {
@@ -219,20 +232,26 @@
   flex-direction: column;
   gap: 4px;
   font-size: 13px;
+  font-weight: 700;
   color: var(--color-text-soft);
 }
 
 .selectField select {
-  padding: 10px 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
-  background: var(--color-surface);
   color: var(--color-text);
-  font: inherit;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 @media (max-width: 720px) {
+  .main {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .playerRow {
+    grid-template-columns: 1fr 80px auto;
+  }
+
+  .formatOptions,
   .lengthRow {
     grid-template-columns: 1fr;
   }

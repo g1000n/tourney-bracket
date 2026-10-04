@@ -1,62 +1,70 @@
 .main {
-  min-height: 70vh;
+  min-height: 72vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-2);
 }
 
+/* A small "window": green title bar, paper body, ink frame. */
 .form {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-top: 4px solid var(--color-primary);
-  border-radius: 4px;
-  padding: var(--space-4);
-  box-shadow: 0 4px 14px rgba(23, 25, 28, 0.08);
+  border: 3px solid var(--color-edge);
+  border-radius: 10px;
+  box-shadow: var(--shadow-hard-lg);
+  overflow: hidden;
+  padding: 0 0 var(--space-3);
 }
 
 .form h1 {
-  margin-bottom: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: 14px var(--space-3) 12px;
+  font-size: 28px;
+  background-color: var(--color-screen);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(11, 26, 18, 0.07) 0 1px,
+    transparent 1px 4px
+  );
+  border-bottom: 3px solid var(--color-edge);
 }
 
 .field {
-  margin-bottom: var(--space-2);
+  margin: 0 var(--space-3) var(--space-2);
 }
 
 .field label {
   display: block;
   margin-bottom: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .field input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 3px;
-  background: var(--color-bg);
 }
 
 .form button {
-  width: 100%;
-  padding: 10px 14px;
-  margin-top: var(--space-1);
+  display: block;
+  width: calc(100% - 2 * var(--space-3));
+  margin: var(--space-1) var(--space-3) 0;
+  padding: 11px 14px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
-  font-weight: 600;
-}
-
-.form button:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary-light);
+  color: var(--color-on-color);
+  box-shadow: var(--shadow-hard);
 }
 
 .error {
-  margin-bottom: var(--space-2);
+  margin: 0 var(--space-3) var(--space-2);
   color: var(--color-accent-on-tint);
   font-size: 14px;
+  font-weight: 700;
 }

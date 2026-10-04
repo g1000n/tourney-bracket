@@ -1,5 +1,11 @@
 // client/src/context/TournamentsContext.jsx
-import { createContext, useContext, useState, useEffect } from "react";
+//
+// The app's data layer. Bracket logic runs here in the browser
+// (lib/bracket.js); every change is then saved through the API layer
+// (api/index.js), which is either the Express server or the browser-only
+// demo. Pages only use the functions exposed at the bottom.
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react";
+import * as api from "../api";
 import {
   generateTournament,
   submitResult,
@@ -14,12 +20,14 @@ import {
 } from "../lib/bracket";
 
 const TournamentsContext = createContext(null);
-const STORAGE_KEY = "tb_tournaments";
 
-// Tournaments saved before formats existed kept full match objects inside
-// `rounds` as a second copy of `allMatches`. After a reload those copies
-// drifted apart, so results never showed. `allMatches` is the copy that
-// actually received results, so rebuild `rounds` from its ids.
+const formatDate = (iso) =>
+  new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+// Fills in anything older saved data lacks. Tournaments saved before formats
+// existed kept full match objects inside `rounds` as a second copy of
+// `allMatches`; rebuild `rounds` from ids, since `allMatches` is the copy
+// that actually received results.
 function normalize(t) {
   const rounds = t.rounds.map((r) =>
     r.matchIds ? r : { label: r.label, side: null, matchIds: r.matches.map((m) => m.id) }
@@ -37,9 +45,12 @@ function normalize(t) {
   }));
   return {
     ...t,
+    name: t.name || (t.roundName ? `${t.game} — ${t.roundName}` : t.game),
+    roundName: t.roundName ?? "",
     format: t.format || "single_elimination",
     bestOf: t.bestOf ?? null,
-    options: t.options || { thirdPlace: t.allMatches.some((m) => m.isThirdPlace), random: false },
+    options: { thirdPlace: allMatches.some((m) => m.isThirdPlace), random: false, ...t.options },
+    date: t.createdAt ? formatDate(t.createdAt) : t.date,
     rounds,
     allMatches,
     status: isComplete(allMatches) ? "complete" : "in_progress",
@@ -50,8 +61,8 @@ function withStatus(t) {
   return { ...t, status: isComplete(t.allMatches) ? "complete" : "in_progress" };
 }
 
-// Builds a fresh bracket for a tournament's current players, keeping its
-// format and settings. Used when a player is removed before play starts.
+// A fresh bracket for a tournament's current players, keeping its format
+// and settings. Used when a player is removed before play starts.
 function regenerate(t, currentTeams) {
   // Copies, because seeding writes each player's new seed onto them.
   const teams = currentTeams.map((team) => ({ ...team }));
@@ -63,80 +74,199 @@ function regenerate(t, currentTeams) {
   return withStatus({ ...t, teams, rounds, allMatches });
 }
 
-function renameInTournament(t, teamId, name) {
-  const rename = (team) => (team && team.id === teamId ? { ...team, name } : team);
-  return {
-    ...t,
-    teams: t.teams.map(rename),
-    allMatches: t.allMatches.map((m) => ({ ...m, teamA: rename(m.teamA), teamB: rename(m.teamB) })),
-  };
+function removalProblem(t, teamId) {
+  if (hasResults(t)) return `${t.name} has already started, so players can't be removed from it.`;
+  const remaining = t.teams.filter((team) => team.id !== teamId);
+  if (remaining.length < 2) return `${t.name} needs at least 2 players.`;
+  if (t.options.thirdPlace && remaining.length < 4) return `${t.name} has a 3rd-place match, which needs 4+ players.`;
+  return null;
 }
 
 export function TournamentsProvider({ children }) {
-  const [tournaments, setTournaments] = useState(() => {
+  const [tournaments, setTournamentsState] = useState([]);
+  const [apiPlayers, setApiPlayers] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  // Always-current copy of the list, so quick clicks in a row each build on
+  // the previous click instead of on a stale render.
+  const current = useRef([]);
+  const setAll = (next) => {
+    current.current = next;
+    setTournamentsState(next);
+  };
+
+  // Saves go out one at a time, in click order, so a later score can never
+  // be overwritten by an earlier request that arrived late.
+  const queue = useRef(Promise.resolve());
+  // Saves still on their way. A live update that arrives meanwhile waits
+  // until they're done, so it can't briefly undo what's on screen.
+  const pending = useRef(0);
+  const staleWhileSaving = useRef(false);
+  const enqueue = (task) => {
+    pending.current++;
+    const run = queue.current.then(task).finally(() => {
+      pending.current--;
+      if (pending.current === 0 && staleWhileSaving.current) {
+        staleWhileSaving.current = false;
+        reload();
+      }
+    });
+    queue.current = run.catch(() => {});
+    return run;
+  };
+
+  const reload = useCallback(async () => {
     try {
-      return (JSON.parse(localStorage.getItem(STORAGE_KEY)) || []).map(normalize);
-    } catch {
-      return [];
+      const list = await api.listTournaments();
+      setAll(list.map(normalize));
+      setLoadError("");
+    } catch (e) {
+      setLoadError(e.message);
     }
-  });
+    try {
+      setApiPlayers(await api.listPlayers());
+    } catch {
+      // The player API isn't required; players are also found in tournaments.
+      setApiPlayers(null);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tournaments));
+    reload();
+  }, [reload]);
+
+  // Live updates: when someone else changes something, reload (at most a few
+  // times a second, however many changes arrive).
+  useEffect(() => {
+    let timer = null;
+    const unsubscribe = api.subscribe(() => {
+      if (pending.current > 0) {
+        staleWhileSaving.current = true;
+        return;
+      }
+      clearTimeout(timer);
+      timer = setTimeout(reload, 250);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [reload]);
+
+  // Everyone who has played, from the player API when it's available,
+  // otherwise from the tournaments themselves. One entry per name.
+  const players = useMemo(() => {
+    const byName = new Map();
+    for (const p of apiPlayers || []) byName.set(p.name.toLowerCase(), { id: p.id, name: p.name });
+    for (const t of tournaments) {
+      for (const team of t.teams) {
+        const key = team.name.toLowerCase();
+        if (!byName.has(key)) byName.set(key, { id: team.id, name: team.name });
+      }
+    }
+    return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [apiPlayers, tournaments]);
+
+  // Every game played so far (one per name, ignoring capitals), most
+  // recently played first.
+  const games = useMemo(() => {
+    const byName = new Map();
+    const newestFirst = [...tournaments].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    for (const t of newestFirst) {
+      const key = t.game.trim().toLowerCase();
+      if (!byName.has(key)) byName.set(key, { name: t.game.trim(), count: 0 });
+      byName.get(key).count++;
+    }
+    return [...byName.values()];
   }, [tournaments]);
 
-  const find = (id) => tournaments.find((t) => t.id === id);
-  const replace = (next) => setTournaments((prev) => prev.map((t) => (t.id === next.id ? next : t)));
+  // The seed each player was last given in this game, so a new tournament
+  // of the same game starts with the same seeds. Map(lowercase name -> rank).
+  const savedSeeds = useCallback(
+    (game) => {
+      const key = game.trim().toLowerCase();
+      const seeds = new Map();
+      const sameGame = tournaments
+        .filter((t) => t.game.trim().toLowerCase() === key)
+        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      for (const t of sameGame) {
+        for (const team of t.teams) {
+          const name = team.name.toLowerCase();
+          if (team.rank != null && !seeds.has(name)) seeds.set(name, team.rank);
+        }
+      }
+      return seeds;
+    },
+    [tournaments]
+  );
 
-  // Runs `change` on a deep copy of one tournament. Returns an error
-  // message, or null on success. Working on a copy keeps React state pure.
-  function edit(tournamentId, change) {
-    const current = find(tournamentId);
-    if (!current) return "Tournament not found.";
-    const copy = structuredClone(current);
+  const find = (id) => current.current.find((t) => t.id === id);
+  const replace = (next) => setAll(current.current.map((t) => (t.id === next.id ? next : t)));
+
+  // Applies a change to one tournament's matches right away (so the screen
+  // updates instantly), then saves just the matches that changed. If the
+  // save fails, the data is reloaded from the server and the error returned.
+  async function editMatches(tournamentId, change) {
+    const before = find(tournamentId);
+    if (!before) return "Tournament not found.";
+    const draft = structuredClone(before);
+    let roundChanges;
     try {
-      change(copy);
+      roundChanges = change(draft) || [];
     } catch (e) {
       return e.message;
     }
-    replace(withStatus(copy));
-    return null;
+    const next = withStatus(draft);
+    const matches = next.allMatches.filter((m, i) => JSON.stringify(m) !== JSON.stringify(before.allMatches[i]));
+    replace(next);
+    try {
+      await enqueue(() => api.updateTournament(next, { status: next.status, matches, rounds: roundChanges }));
+      return null;
+    } catch (e) {
+      await reload();
+      return e.message;
+    }
   }
 
-  function createTournament({
+  async function createTournament({
     game,
     roundName,
-    players,
+    players: entrants,
     format = "single_elimination",
     thirdPlace = true,
     random = true,
     bestOf = null,
     lateBestOf = bestOf,
   }) {
-    const teams = players.map((p) => ({ id: crypto.randomUUID(), ...p }));
+    // Reuse known players' ids, so the same person keeps one history.
+    const known = new Map(players.map((p) => [p.name.toLowerCase(), p.id]));
+    const teams = entrants.map((p) => ({ id: known.get(p.name.toLowerCase()) || crypto.randomUUID(), ...p }));
     const options = { thirdPlace: format === "single_elimination" && thirdPlace, random, lateBestOf };
     const { rounds, allMatches } = generateTournament(format, teams, { ...options, bestOf });
     const tournament = withStatus({
       id: crypto.randomUUID(),
-      name: roundName ? `${game} — ${roundName}` : game,
       game,
       roundName: roundName || "",
+      name: roundName ? `${game} — ${roundName}` : game,
       format,
       bestOf,
       options,
-      date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+      createdAt: new Date().toISOString(),
       teams,
       rounds,
       allMatches,
     });
-    setTournaments((prev) => [...prev, tournament]);
-    return tournament.id;
+    const saved = normalize(await api.createTournament(tournament));
+    setAll([saved, ...current.current]);
+    return saved.id;
   }
 
-  // Live scoring: every +/− is saved immediately, so later these can be
-  // pushed to viewers in real time.
-  function setLiveScore(tournamentId, matchId, scoreA, scoreB) {
-    return edit(tournamentId, (t) => {
+  // Live scoring: every +/− is saved immediately, so viewers can later be
+  // shown scores as they happen.
+  const setLiveScore = (tournamentId, matchId, scoreA, scoreB) =>
+    editMatches(tournamentId, (t) => {
       const match = t.allMatches.find((m) => m.id === matchId);
       if (!match || !isReady(match)) throw new Error("This match can't be scored right now.");
       const problem = validateLiveScore(scoreA, scoreB, matchBestOf(t, matchId));
@@ -144,100 +274,118 @@ export function TournamentsProvider({ children }) {
       match.scoreA = scoreA;
       match.scoreB = scoreB;
     });
-  }
 
-  function finishMatch(tournamentId, matchId) {
-    return edit(tournamentId, (t) => {
+  const finishMatch = (tournamentId, matchId) =>
+    editMatches(tournamentId, (t) => {
       const match = t.allMatches.find((m) => m.id === matchId);
       submitResult(t.allMatches, match, match.scoreA ?? 0, match.scoreB ?? 0, { bestOf: matchBestOf(t, matchId) });
     });
-  }
 
-  function reopenMatch(tournamentId, matchId) {
-    return edit(tournamentId, (t) => {
+  const reopenMatch = (tournamentId, matchId) =>
+    editMatches(tournamentId, (t) => {
       undoResult(t.allMatches, t.allMatches.find((m) => m.id === matchId));
     });
-  }
 
-  function setRoundBestOf(tournamentId, roundIndex, bestOf) {
-    return edit(tournamentId, (t) => {
+  const setRoundBestOf = (tournamentId, roundIndex, bestOf) =>
+    editMatches(tournamentId, (t) => {
       const round = t.rounds[roundIndex];
       if (roundMatches(t, round).some((m) => hasStarted(m) || (m.winnerId && !m.isBye))) {
         throw new Error("This round has already started, so its match length is locked.");
       }
       round.bestOf = bestOf;
+      return [{ index: roundIndex, bestOf }];
     });
-  }
 
-  function deleteTournament(tournamentId) {
-    setTournaments((prev) => prev.filter((t) => t.id !== tournamentId));
-  }
-
-  function renamePlayer(tournamentId, teamId, newName) {
-    const name = newName.trim();
-    const t = find(tournamentId);
-    if (!name) return "Enter a name.";
-    if (t.teams.some((team) => team.id !== teamId && team.name.toLowerCase() === name.toLowerCase())) {
-      return "Another player in this tournament already has that name.";
+  async function deleteTournament(tournamentId) {
+    setAll(current.current.filter((t) => t.id !== tournamentId));
+    try {
+      await enqueue(() => api.deleteTournament(tournamentId));
+      return null;
+    } catch (e) {
+      await reload();
+      return e.message;
     }
-    replace(renameInTournament(t, teamId, name));
-    return null;
   }
 
-  // Players are matched across tournaments by name, so this renames the
-  // player everywhere they appear.
-  function renamePlayerEverywhere(oldName, newName) {
+  // Players are one record across every tournament, so a rename shows
+  // everywhere.
+  async function renamePlayer(oldName, newName) {
     const name = newName.trim();
     if (!name) return "Enter a name.";
-    const key = oldName.toLowerCase();
-    const clash = tournaments.find(
-      (t) =>
-        t.teams.some((team) => team.name.toLowerCase() === key) &&
-        t.teams.some((team) => team.name.toLowerCase() === name.toLowerCase() && team.name.toLowerCase() !== key)
-    );
-    if (clash) return `"${name}" is already a different player in ${clash.name}.`;
-    setTournaments((prev) =>
-      prev.map((t) => {
-        const team = t.teams.find((x) => x.name.toLowerCase() === key);
-        return team ? renameInTournament(t, team.id, name) : t;
-      })
-    );
-    return null;
-  }
-
-  function removalProblem(t, teamId) {
-    if (hasResults(t)) return `${t.name} has already started, so players can't be removed from it.`;
-    const remaining = t.teams.filter((team) => team.id !== teamId);
-    if (remaining.length < 2) return `${t.name} needs at least 2 players.`;
-    if (t.options.thirdPlace && remaining.length < 4) return `${t.name} has a 3rd-place match, which needs 4+ players.`;
-    return null;
+    if (name.length > 100) return "Names can be at most 100 characters.";
+    const player = players.find((p) => p.name.toLowerCase() === oldName.toLowerCase());
+    if (!player) return "Player not found.";
+    if (players.some((p) => p !== player && p.name.toLowerCase() === name.toLowerCase())) {
+      return `There's already a player called "${name}".`;
+    }
+    try {
+      await enqueue(() => api.renamePlayer({ id: player.id, oldName, name }));
+      await reload();
+      return null;
+    } catch (e) {
+      return e.message;
+    }
   }
 
   // Only before any match is played: the bracket is rebuilt without them.
-  function removePlayer(tournamentId, teamId) {
+  async function removePlayer(tournamentId, teamId) {
     const t = find(tournamentId);
     const problem = removalProblem(t, teamId);
     if (problem) return problem;
-    replace(regenerate(t, t.teams.filter((team) => team.id !== teamId)));
-    return null;
+    try {
+      const rebuilt = regenerate(t, t.teams.filter((team) => team.id !== teamId));
+      replace(normalize(await enqueue(() => api.replaceTournament(rebuilt))));
+      return null;
+    } catch (e) {
+      await reload();
+      return e.message;
+    }
   }
 
-  function removePlayerEverywhere(name) {
+  // Removes the player from every tournament they're in (none may have
+  // started), then deletes the player record.
+  async function removePlayerEverywhere(name) {
     const key = name.toLowerCase();
-    const affected = tournaments
+    const affected = current.current
       .map((t) => ({ t, team: t.teams.find((x) => x.name.toLowerCase() === key) }))
       .filter((x) => x.team);
     const problems = affected.map(({ t, team }) => removalProblem(t, team.id)).filter(Boolean);
     if (problems.length) return problems.join(" ");
-    const rebuilt = new Map(affected.map(({ t, team }) => [t.id, regenerate(t, t.teams.filter((x) => x !== team))]));
-    setTournaments((prev) => prev.map((t) => rebuilt.get(t.id) || t));
-    return null;
+    const player = players.find((p) => p.name.toLowerCase() === key);
+    try {
+      for (const { t, team } of affected) {
+        await enqueue(() => api.replaceTournament(regenerate(t, t.teams.filter((x) => x !== team))));
+      }
+      if (player) await enqueue(() => api.deletePlayer({ id: player.id, name: player.name }));
+      await reload();
+      return null;
+    } catch (e) {
+      await reload();
+      return e.message;
+    }
+  }
+
+  async function login(username, password) {
+    const { token } = await api.login(username, password);
+    sessionStorage.setItem(api.ADMIN_TOKEN_KEY, token);
+    sessionStorage.setItem("isAdmin", "true");
+  }
+
+  function logout() {
+    sessionStorage.removeItem(api.ADMIN_TOKEN_KEY);
+    sessionStorage.removeItem("isAdmin");
   }
 
   return (
     <TournamentsContext.Provider
       value={{
         tournaments,
+        players,
+        games,
+        savedSeeds,
+        loading,
+        loadError,
+        reload,
         createTournament,
         setLiveScore,
         finishMatch,
@@ -245,9 +393,10 @@ export function TournamentsProvider({ children }) {
         setRoundBestOf,
         deleteTournament,
         renamePlayer,
-        renamePlayerEverywhere,
         removePlayer,
         removePlayerEverywhere,
+        login,
+        logout,
       }}
     >
       {children}
