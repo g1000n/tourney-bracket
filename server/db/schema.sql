@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS tournaments (
   round_name VARCHAR(100),
   status     VARCHAR(20) NOT NULL DEFAULT 'in_progress',
   format     VARCHAR(30) NOT NULL DEFAULT 'single_elimination',
+  best_of    INTEGER CHECK (best_of IS NULL OR best_of > 0),
+  options    JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -28,6 +30,9 @@ CREATE TABLE IF NOT EXISTS players (
   id   UUID PRIMARY KEY,
   name VARCHAR(100) NOT NULL
 );
+
+-- One player per name, ignoring capitals.
+CREATE UNIQUE INDEX IF NOT EXISTS players_name_unique ON players (lower(name));
 
 -- Connects players to tournaments. Rank is stored here because a player's
 -- rank can be different from one tournament to another.
@@ -57,9 +62,15 @@ CREATE TABLE IF NOT EXISTS matches (
   -- Added for the three formats; see migrations/001_tournament_formats.sql.
   loser_next_match_id UUID REFERENCES matches(id),
   loser_next_slot     VARCHAR(1),
-  is_third_place      BOOLEAN NOT NULL DEFAULT FALSE,
   bracket_side        VARCHAR(20),
-  best_of             INTEGER CHECK (best_of IS NULL OR best_of > 0)
+  is_third_place      BOOLEAN NOT NULL DEFAULT FALSE,
+  is_grand_final      BOOLEAN NOT NULL DEFAULT FALSE,
+  is_reset            BOOLEAN NOT NULL DEFAULT FALSE,
+  is_void             BOOLEAN NOT NULL DEFAULT FALSE,
+  best_of             INTEGER CHECK (best_of IS NULL OR best_of > 0),
+  code                VARCHAR(10),
+  round_index         INTEGER,
+  position            INTEGER
 );
 
 -- These are used when looking up all matches or players for a tournament.

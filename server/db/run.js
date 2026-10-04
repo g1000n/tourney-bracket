@@ -6,6 +6,7 @@
 // works on macOS, Windows, Linux and a Codespace, and so you do not need the
 // PostgreSQL client tools installed to set up the database.
 
+import './owner.js' // setup scripts use the owner login; see owner.js
 import { readFileSync } from 'node:fs'
 import { pool } from './pool.js'
 

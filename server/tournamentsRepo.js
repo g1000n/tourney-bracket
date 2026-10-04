@@ -31,3 +31,15 @@ export async function remove(pool,id) {
     RETURNING id`, [id])
   return result.rowCount > 0
 }
+
+// Added by Claude Code: saves a tournament's status and settings (format,
+// default match length, and the options needed to rebuild its bracket).
+export async function update(pool, id, tournament) {
+  const result = await pool.query(`
+    UPDATE tournaments
+    SET status = $2, format = $3, best_of = $4, options = $5
+    WHERE id = $1
+    RETURNING *`,
+    [id, tournament.status, tournament.format, tournament.best_of, JSON.stringify(tournament.options)])
+  return result.rows[0] ?? null
+}

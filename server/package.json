@@ -8,7 +8,13 @@
     "dev": "node --env-file=.env --watch server.js",
     "db:schema": "node --env-file=.env db/run.js db/schema.sql",
     "db:seed": "node --env-file=.env db/run.js db/seed.sql",
-    "db:reset": "npm run db:schema && npm run db:seed"
+    "db:reset": "npm run db:schema && npm run db:seed",
+    "admin:create": "node --env-file=.env db/create-admin.js",
+    "db:migrate": "node --env-file=.env db/run.js db/migrations/001_tournament_formats.sql",
+    "db:lock": "node --env-file=.env db/run.js db/migrations/002_lock_public_api.sql",
+    "db:app-role": "node --env-file=.env db/create-app-role.js",
+    "db:wipe": "node --env-file=.env db/wipe.js",
+    "start:local": "node --env-file=.env server.js"
   },
   "engines": {
     "node": ">=20"
