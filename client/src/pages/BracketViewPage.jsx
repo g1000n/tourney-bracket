@@ -217,9 +217,23 @@ function Connectors({ canvasRef, tournament }) {
   const [paths, setPaths] = useState([]);
 
   useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    function measure() {
+    // React attaches the canvas ref after this child's effect runs on first
+    // mount, so the canvas can still be missing here. Retry on the next frame;
+    // otherwise opening a bracket from the list drew no connectors at all.
+    let observer = null;
+    let frame = 0;
+    function start() {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        frame = requestAnimationFrame(start);
+        return;
+      }
+      const measureCanvas = () => measure(canvas);
+      measureCanvas();
+      observer = new ResizeObserver(measureCanvas);
+      observer.observe(canvas);
+    }
+    function measure(canvas) {
       const box = canvas.getBoundingClientRect();
       const pos = new Map();
       canvas.querySelectorAll("[data-match-id]").forEach((el) => {
@@ -239,10 +253,11 @@ function Connectors({ canvasRef, tournament }) {
       const next = [...feedersOf].map(([id, feeders]) => braceToPath(feeders, pos.get(id))).filter(Boolean);
       setPaths((prev) => (prev.join("|") === next.join("|") ? prev : next));
     }
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(canvas);
-    return () => observer.disconnect();
+    start();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
   });
 
   return (
