@@ -1,17 +1,12 @@
-import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
 
+// The admin login isn't linked from the site; the admin opens /admin/login
+// directly (the New tournament page also sends you there).
 export default function Footer() {
-  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
   return (
     <footer className={styles.footer}>
       <hr />
-      <p>TourneyBracket — a 6APSI final project</p>
-      {!isAdmin && (
-        <p>
-          <Link to="/admin/login">Admin login</Link>
-        </p>
-      )}
+      <p>TourneyBracket — brackets, live scores and stats for casual tournaments</p>
     </footer>
   );
 }
