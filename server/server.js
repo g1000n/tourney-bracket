@@ -25,6 +25,13 @@ import { subscribe, broadcast } from './events.js'
 const app = express()
 const isProduction = process.env.NODE_ENV === 'production'
 
+// On Render every request arrives through Render's proxy, so without this all
+// visitors share the proxy's address: one person's 5 wrong passwords would
+// lock everyone out, and only 6 viewers in total would get live updates.
+// Render sets RENDER=true itself. The forwarded address can be faked by a
+// client, so the per-username login limit is what really stops guessing.
+if (process.env.RENDER === 'true') app.set('trust proxy', true)
+
 // Don't advertise the framework, and add the standard protective headers to
 // every response (what the helmet package would add, without the package).
 app.disable('x-powered-by')
