@@ -1,69 +1,43 @@
 # Security and privacy checklist
 
-Work through this **before your first push**, and again before you submit. It is
-short, none of it is exotic, and a grader can check most of it in two minutes.
-
-Your repository is public, in your own account, and permanent. That is the point
-of it, and it is also why this file exists.
+Worked through before making the project public and again before submitting.
+The full version, with evidence for every row, is
+[`SECURITY-CHECKLIST.md`](../SECURITY-CHECKLIST.md).
 
 ## Before the first push
 
-- [ ] `.gitignore` includes `.env`, and `git check-ignore -v .env` confirms it
-- [ ] `git ls-files | grep -iE '\.env$|\.pem$|id_rsa'` prints nothing
-- [ ] `.env.example` is committed, with **placeholder** values only
-- [ ] No connection string, key or password anywhere in the repository,
-      including in a screenshot
-- [ ] No `student.json`, and no name, student number or email of yours or anyone
-      else's
-
-Deleting a file later does **not** remove it from the history. If you commit a
-credential, **rotate it first**, at the service, and clean up the history second.
-The rotation is the fix; the cleanup is hygiene.
+- [x] `.gitignore` includes `.env`, and `git check-ignore -v .env` confirms it
+- [x] `git ls-files | grep -iE '\.env$|\.pem$|id_rsa'` prints nothing
+- [x] `.env.example` is committed, with placeholder values only (`server/` and `client/`)
+- [x] No connection string, key or password anywhere in the repository, including screenshots
+- [x] No `student.json`, and no name, student number or email in any file. Commit history uses only my GitHub noreply address (rewritten on 2026-10-07).
 
 ## The application
 
-- [ ] Every SQL query is parameterised. Values go in the array, never into the
-      string. This is one line of defence you already know how to do
-- [ ] Input is validated **on the server**, not only in React. Length limits on
-      every text field
-- [ ] `cors({ origin: allowedOrigins })` names your origins. Not `cors()` with no
-      options, which allows every site on the internet
-- [ ] `NODE_ENV=production` on the host, and no stack trace in any response body
-- [ ] `helmet` installed, which is one line for several real protections
-- [ ] Anything that costs money or accepts a password is rate limited
-- [ ] Passwords, if you have accounts, are hashed with bcrypt and never logged
-- [ ] Every route that touches somebody's data has the ownership check **in the
-      query**, as `AND user_id = $2`, not as an `if` above it
-- [ ] `npm audit` run once, and the easy fixes taken
-
-```bash
-npm install helmet
-```
-
-```js
-import helmet from 'helmet'
-app.use(helmet())
-```
+- [x] Every SQL query is parameterised: one query per repo function, values in the array
+- [x] Input is validated on the server (`server/tournamentPayload.js`, the player name checks), with length limits on every text field
+- [x] CORS names its origins (`CORS_ORIGINS`), never `cors()` with no options. The deployed site and API share one address, so it isn't needed there.
+- [x] `NODE_ENV=production` on the host, and no stack trace in any response body
+- [x] Security headers: set by hand in `server.js` instead of `helmet` (nosniff, frame denial, referrer policy, HSTS in production, a strict Content Security Policy when serving the site)
+- [x] The login is rate limited: 5 failures per address and 10 per username, then a 15-minute lock
+- [x] Passwords are hashed with scrypt (Node's built-in, in place of bcrypt) and never logged
+- [x] Ownership checks: N/A. There is one admin and no per-user data; every changing route requires the admin login.
+- [x] `npm audit`: 0 vulnerabilities in `server/` and `client/`
 
 ## Privacy
 
-The half that matters more, because it is about other people.
+- [x] No real classmates' numbers, emails or photos in any file or seed data
+- [ ] Check before submitting: player names in the screenshots, the live database and the video are invented, or used with that person's OK
+- [x] Seed data is invented
+- [x] The app collects only player display names typed by the admin; no accounts for players
+- [x] No faces in any screenshot
 
-- [ ] **No real classmates' names, numbers, emails or photos**, anywhere. Not in
-      seed data, not in screenshots, not in the demo video. Consent for a course
-      project does not cover the next ten years of a public repository
-- [ ] Seed data is invented. Yours will be read
-- [ ] If real people tested your app, even three friends, their data is deleted
-      before you submit
-- [ ] If your app collects anything about anyone, the app says what it collects
-- [ ] Any face in a screenshot is stock, generated, or yours
+## The riskiest thing
 
-If your project handles personal information about real people, you are inside
-the Philippine Data Privacy Act. Collect the minimum, say what you collect, and
-do not collect anything you cannot justify.
-
-## What to write in your journal
-
-One short paragraph: the riskiest thing about your project from this list, what
-you did about it, and what you knowingly accepted. A student who can name the
-tradeoff they made scores better than one who claims there was none.
+The riskiest thing was the database login. The app first connected to Supabase
+as the owner, which can drop or empty every table, and Supabase's public API
+still had its default permissions. I changed the app to a restricted login that
+can only read and write its own tables, and closed the public API. The checklist also
+caught personal email addresses in the commit history, which I removed by
+rewriting it. What I knowingly accepted: viewing is public and only one admin
+account exists, so there is no per-user access control.

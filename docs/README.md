@@ -11,10 +11,7 @@ repository, so it is versioned alongside the thing it describes.
 | [04-weekly-reports.md](04-weekly-reports.md) | a few lines a week | every week |
 | [05-demo-video.md](05-demo-video.md) | the recording, and its plan | the end |
 | [06-security-and-privacy.md](06-security-and-privacy.md) | what you checked before making this public | before your first push |
+| [DEPLOY.md](DEPLOY.md) | how the app is deployed (Render) | reference |
+| [my-code-guide.md](my-code-guide.md), [players-api-guide.md](players-api-guide.md) | the specs I wrote my own server files from | record |
 
-Put images in `assets/`. A screenshot named `assets/screenshot.png` is referenced
-by the main README, and a README with an image reads as finished in a way one
-without an image does not.
-
-**Write these as you go.** A weekly report written on the last day is obvious to
-read and worth very little.
+Images (screenshots of every screen) are in [`../screenshots/`](../screenshots/).

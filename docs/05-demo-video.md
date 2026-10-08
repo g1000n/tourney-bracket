@@ -1,33 +1,27 @@
 # Demo video
 
-Three to five minutes, screen recorded, your own voice. Nobody watches ten.
+About 4 min 40 s, screen recorded with my webcam and voice, on the deployed site.
 
-**Link:** (paste it here, and in the main README)
+**Link:** (paste the public Google Drive link here, and in the main README)
 
-## The structure that always works
+## Plan
 
-1. **Thirty seconds.** What it is and who it is for. Show the app, not a slide.
-2. **Two to three minutes.** The main flow, end to end, on the **deployed** site,
-   with data you prepared in advance. Not an empty database, and not a form you
-   fill in slowly while talking.
-3. **Thirty seconds.** One thing you are proud of technically. Open one file and
-   explain a decision. This is where you show it is yours.
-4. **Thirty seconds.** One honest thing you would do differently. It is the
-   sentence that makes everything else credible.
+| Time | What's on screen | What I cover |
+|---|---|---|
+| 0:00–0:20 | the live site's home page | what TourneyBracket is and who it's for; React, Express, PostgreSQL on Render and Supabase |
+| 0:20–1:40 | admin login, New tournament, then an admin window next to a viewer window | creating a double elimination; live scoring appearing for the viewer in about a second; Stats |
+| 1:40–4:10 | `AI-USAGE.md`, then VS Code | **the AI segment:** how I used Claude and Claude Code; the code I wrote myself (`tournamentsRepo.js`, `playersRepo.js`, `events.js`, the players routes); one AI-written part I understand; one case where the AI got it wrong |
+| 4:10–4:40 | the site | what I'd do differently, and what I'd build next |
 
-## Before you record
+## Before recording
 
-- [ ] Open the site five minutes early so a free-tier API is awake
-- [ ] Record the **deployed** URL, not `localhost`
-- [ ] Close your other tabs. Check for personal messages, other students' names,
-      and any `.env` file open in an editor
-- [ ] Seed realistic data
-- [ ] Do a full practice run. If something breaks, stop and start again rather
-      than narrating the bug
+- [ ] Open the site five minutes early so the free Render instance is awake
+- [ ] Record the deployed URL, not `localhost`
+- [ ] One finished tournament (for Stats) and one in progress, prepared in advance
+- [ ] `server/.env` closed, notifications off, other tabs closed
+- [ ] One full practice run
 
-## Have a fallback
+## Fallback
 
-In order of preference: a demo-mode build of the client, a recording of the
-working app, screenshots. A demo that fails with no fallback is a bad five
-minutes. A demo that fails where you say "here is the recording, and here is what
-went wrong" is a good one.
+If the live site is down during a demo: run it locally (README section 3), or
+show this recording.

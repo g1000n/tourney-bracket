@@ -1,24 +1,31 @@
 # Mockup
 
-Your prelim wireframes are finished and are not being redone. The mockup is what
-the app will actually look like: the wireframes painted in, with your real
-colours, type, spacing and content.
+The mockup was designed in Figma, using the logo and colour palette that the
+built app now follows. The images below are screenshots of the finished app,
+showing every screen in the proposal with real content.
 
-**This is submitted as images or a PDF.** A written description of a picture
-scores in the lowest band, because the thing being asked for is the picture.
+| Screen | Image |
+|---|---|
+| Tournaments, as a visitor sees them | ![Tournaments, public view](../screenshots/tournaments.png) |
+| Tournaments, with the admin's controls | ![Tournaments, admin view](../screenshots/tournaments-admin.png) |
+| New tournament (setup) | ![Creating a tournament](../screenshots/new-tournament.png) |
+| A bracket, with live scoring | ![A bracket](../screenshots/bracket.png) |
+| Stats | ![Stats page](../screenshots/stats.png) |
+| Admin login | ![Admin login](../screenshots/admin-login.png) |
+| A bracket on a phone | ![A bracket on a phone](../screenshots/bracket-phone.png) |
 
-Put the exported images in `assets/` and link them here, so the repository
-carries them too.
+## Empty state
 
-## What it should show
+With no tournaments, the Tournaments page says "No tournaments yet. Start one
+with New tournament." to the admin and "No tournaments yet. Check back soon." to
+visitors. While data is loading it says "Loading tournaments…".
 
-- Every screen in your revised proposal, and no screens that are not in it
-- Real content, not "Lorem ipsum" and not "Title here"
-- The empty state of at least one screen, because that is the one people forget
-- What it looks like on a phone
+## On a phone
 
-## Honest note
+Every screen works at 375 px wide. The bracket scrolls sideways inside its own
+area, and the Stats page's two columns stack.
 
-Anything in the mockup that is not in the built app by the end needs a sentence
-in your journal explaining what happened. That is a normal part of building
-something, and saying so reads far better than quietly shipping less.
+## Differences from the Figma mockup
+
+None worth noting in layout. The bracket's curly-brace connectors between rounds
+were added during building.
